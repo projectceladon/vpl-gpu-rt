@@ -81,6 +81,7 @@ LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
+    -msse4.1 \
     -Wno-error \
     -Wno-unused-parameter
 

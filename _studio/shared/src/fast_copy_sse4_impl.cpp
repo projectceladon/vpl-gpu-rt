@@ -26,6 +26,7 @@
 
 #include <immintrin.h>
 
+
 void copyVideoToSys_SSE4(const mfxU8* src, mfxU8* dst, int width)
 {
     static const int item_size = 4*sizeof(__m128i);

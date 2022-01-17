@@ -30,7 +30,11 @@ mfxI32 CpuFeature_SSE41() {
 
 void copyVideoToSys(const mfxU8* src, mfxU8* dst, int width)
 {
-    static const int m_SSE4_available = CpuFeature_SSE41();
+    //static const int m_SSE4_available = CpuFeature_SSE41();
+    int m_SSE4_available = 0;
+#if defined(MFX_SSE_4_1)
+    m_SSE4_available = 1;
+#endif
 
     static const t_copyVideoToSys copyVideoToSys_impl = FAFT_COPY_CPU_DISP_INIT_SSE4_C(copyVideoToSys);
 
@@ -39,7 +43,11 @@ void copyVideoToSys(const mfxU8* src, mfxU8* dst, int width)
 
 void copyVideoToSysShift(const mfxU16* src, mfxU16* dst, int width, int shift)
 {
-    static const int m_SSE4_available = CpuFeature_SSE41();
+    //static const int m_SSE4_available = CpuFeature_SSE41();
+    int m_SSE4_available = 0;
+#if defined(MFX_SSE_4_1)
+    m_SSE4_available = 1;
+#endif
 
     static const t_copyVideoToSysShift copyVideoToSysShift_impl = FAFT_COPY_CPU_DISP_INIT_SSE4_C(copyVideoToSysShift);
 
@@ -48,7 +56,11 @@ void copyVideoToSysShift(const mfxU16* src, mfxU16* dst, int width, int shift)
 
 void copySysToVideoShift(const mfxU16* src, mfxU16* dst, int width, int shift)
 {
-    static const int m_SSE4_available = CpuFeature_SSE41();
+    //static const int m_SSE4_available = CpuFeature_SSE41();
+    int m_SSE4_available = 0;
+#if defined(MFX_SSE_4_1)
+    m_SSE4_available = 1;
+#endif
 
     static const t_copySysToVideoShift copySysToVideoShift_impl = FAFT_COPY_CPU_DISP_INIT_SSE4_C(copySysToVideoShift);
 
