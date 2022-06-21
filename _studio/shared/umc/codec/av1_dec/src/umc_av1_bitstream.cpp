@@ -1191,7 +1191,8 @@ namespace UMC_AV1_DECODER
 
         if (info.header.obu_has_size_field)
             av1_read_obu_size(*this, obu_size, sizeFieldLength);
-        else if (info.header.obu_type != OBU_TEMPORAL_DELIMITER)
+	// Av1-spec section 6.2.2: Reserved units are for future use and shall be ignored by AV1 decoder.
+        else if (info.header.obu_type != OBU_TEMPORAL_DELIMITER && info.header.obu_type != OBU_Reserved)
             throw av1_exception(UMC::UMC_ERR_NOT_IMPLEMENTED); // no support for OBUs w/o size field so far
 
         info.size = headerSize + sizeFieldLength + obu_size;
