@@ -204,6 +204,10 @@ ASC::ASC()
 {
 }
 
+ASC::~ASC()
+{
+}
+
 void ASC::Setup_Environment() {
     m_dataIn->accuracy = 1;
 

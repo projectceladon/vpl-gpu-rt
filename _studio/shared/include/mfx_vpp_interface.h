@@ -94,7 +94,9 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_Y216      ,
         MFX_FOURCC_Y416      ,
         MFX_FOURCC_BGRP      ,
+#ifdef ONEVPL_EXPERIMENTAL
         MFX_FOURCC_ABGR16F   ,
+#endif
         MFX_FOURCC_I420      ,
     };
 
@@ -365,31 +367,33 @@ namespace MfxHwVideoProcessing
                ,iFieldProcessingMode(0)
                ,bCameraPipeEnabled(false)
                ,bCameraPipeControl(0)
+#ifdef ONEVPL_EXPERIMENTAL
                ,CameraPipeControl()
-               ,bCameraBlackLevelCorrection(false)
                ,CameraBlackLevel()
-               ,bCameraWhiteBalaceCorrection(false)
                ,CameraWhiteBalance()
-               ,bCameraHotPixelRemoval(false)
                ,CameraHotPixel()
-               ,bCCM(false)
                ,CCMParams()
-               ,bCameraTCC(false)
                ,CameraTCC()
-               ,bCameraRGBtoYUV(false)
                ,CameraRGBToYUV()               
-               ,bCameraGammaCorrection(false)
                ,CameraForwardGammaCorrection()
-               ,bCameraVignetteCorrection(false)
                ,CameraVignetteCorrection()
-               ,bCameraLensCorrection(false)
                ,CameraLensCorrection()
-               ,bCamera3DLUT(false)
                ,Camera3DLUT()
-               ,bCameraPadding(false)
                ,CameraPadding()
-               ,bCameraBayerDenoise(false)
                ,CameraBayerDenoise()
+#endif
+               ,bCameraBlackLevelCorrection(false)
+               ,bCameraWhiteBalaceCorrection(false)
+               ,bCameraHotPixelRemoval(false)
+               ,bCCM(false)
+               ,bCameraTCC(false)
+               ,bCameraRGBtoYUV(false)
+               ,bCameraGammaCorrection(false)
+               ,bCameraVignetteCorrection(false)
+               ,bCameraLensCorrection(false)
+               ,bCamera3DLUT(false)
+               ,bCameraPadding(false)
+               ,bCameraBayerDenoise(false)
                ,rotation(0)
                ,scalingMode(MFX_SCALING_MODE_DEFAULT)
                ,interpolationMethod(MFX_INTERPOLATION_DEFAULT)
@@ -544,33 +548,35 @@ namespace MfxHwVideoProcessing
         //  Camera Pipe specific params
         bool                            bCameraPipeEnabled;
         bool                            bCameraPipeControl;
+#ifdef ONEVPL_EXPERIMENTAL
         mfxExtCamPipeControl            CameraPipeControl;
-        bool                            bCameraBlackLevelCorrection;
         mfxExtCamBlackLevelCorrection   CameraBlackLevel;
-        bool                            bCameraWhiteBalaceCorrection;
         mfxExtCamWhiteBalance           CameraWhiteBalance;
-        bool                            bCameraHotPixelRemoval;
         mfxExtCamHotPixelRemoval        CameraHotPixel;
-        bool                            bCCM;
         mfxExtCamColorCorrection3x3     CCMParams;
-        bool                            bCameraTCC;
         mfxExtCamTotalColorControl      CameraTCC;
-        bool                            bCameraRGBtoYUV;
         mfxExtCamCscYuvRgb              CameraRGBToYUV;
-        bool                            bCameraGammaCorrection;
         mfxExtCamFwdGamma               CameraForwardGammaCorrection;
-        bool                            bCameraVignetteCorrection;
         mfxExtCamVignetteCorrection     CameraVignetteCorrection;
-        bool                            bCameraLensCorrection;
         mfxExtCamLensGeomDistCorrection CameraLensCorrection;
-        bool                            bCamera3DLUT;
         mfxExtCam3DLut                  Camera3DLUT;
-        bool                            bCameraPadding;
         mfxExtCamPadding                CameraPadding;
-        bool                            bCameraBayerDenoise;
         mfxExtCamBayerDenoise           CameraBayerDenoise;
+#endif
+        bool                            bCameraBlackLevelCorrection;
+        bool                            bCameraWhiteBalaceCorrection;
+        bool                            bCameraHotPixelRemoval;
+        bool                            bCCM;
+        bool                            bCameraTCC;
+        bool                            bCameraRGBtoYUV;
+        bool                            bCameraGammaCorrection;
+        bool                            bCameraVignetteCorrection;
+        bool                            bCameraLensCorrection;
+        bool                            bCamera3DLUT;
+        bool                            bCameraPadding;
+        bool                            bCameraBayerDenoise;
 
-        int         rotation;
+	int         rotation;
 
         mfxU16      scalingMode;
 

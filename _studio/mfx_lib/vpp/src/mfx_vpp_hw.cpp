@@ -2330,6 +2330,7 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_INPUT | MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
+#ifdef ONEVPL_EXPERIMENTAL
         case MFX_EXTBUF_CAM_3DLUT:
             if (format == MFX_FOURCC_R16_BGGR ||
                 format == MFX_FOURCC_R16_RGGB ||
@@ -2377,7 +2378,6 @@ mfxStatus VideoVPPHW::CheckFormatLimitation(mfxU32 filter, mfxU32 format, mfxU32
                 formatSupport = MFX_FORMAT_SUPPORT_OUTPUT;
             }
             break;
-#if defined (ONEVPL_EXPERIMENTAL)
         case MFX_EXTBUFF_VPP_PERC_ENC_PREFILTER:
             if (format == MFX_FOURCC_NV12)
             {
@@ -2481,6 +2481,7 @@ mfxStatus  VideoVPPHW::Init(
     }
     MFX_CHECK_STS(sts);
 
+#ifdef ONEVPL_EXPERIMENTAL
     for (mfxU32 i = 0; i < m_params.NumExtParam; i++)
     {
         if (m_params.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_3DLUT)
@@ -2672,6 +2673,7 @@ mfxStatus  VideoVPPHW::Init(
             }
         }
     }
+#endif
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
@@ -5827,6 +5829,7 @@ mfxStatus ConfigureExecuteParams(
 
     executeParams.iBackgroundColor = get_background_color(videoParam);
 
+#ifdef ONEVPL_EXPERIMENTAL
     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
     {
         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUF_CAM_PIPECONTROL)
@@ -5834,6 +5837,7 @@ mfxStatus ConfigureExecuteParams(
             bitmodeflag = TRUE;
         }
     }
+#endif
 
     if (!bitmodeflag)
     {

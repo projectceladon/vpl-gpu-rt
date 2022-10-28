@@ -35,9 +35,9 @@
 #include "mfx_h264_encode_interface.h"
 #ifdef MFX_ENABLE_EXT
 #include "mfx_h264_encode_cm.h"
+#endif
 #ifdef MFX_ENABLE_ASC
 #include "asc_cm.h"
-#endif
 #else
 #include "asc.h"
 #endif

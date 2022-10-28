@@ -53,7 +53,7 @@ namespace CommonCaps {
 
     inline bool IsVplHW(eMFXHWType hw, mfxU32 deviceId)
     {
-        return hw >= MFX_HW_TGL_LP && deviceId != 0x4907;
+        return hw >= MFX_HW_TGL_LP;
     }
 
     inline bool CapsQueryOptimizationSupport(eMFXHWType platform)

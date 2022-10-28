@@ -24,6 +24,7 @@
 #include "mfx_config.h"
 
 #include "mfxstructures.h"
+#include "mfxcommon.h"
 
 #include "mfxdeprecated.h"
 #include "mfxplugin.h"
@@ -800,6 +801,7 @@ struct mfxRefCountable
     virtual mfxU32    GetRefCounter() const = 0;
     virtual void      AddRef()              = 0;
     virtual mfxStatus Release()             = 0;
+    virtual ~mfxRefCountable() {};
 };
 
 template <typename T>
@@ -824,9 +826,11 @@ protected:
     template <typename X, typename std::enable_if<HasRefInterface<X>::value, bool>::type = true>
     void AssignFunctionPointers()
     {
+#ifdef ONEVPL_EXPERIMENTAL
         T::RefInterface.AddRef        = _AddRef2;
         T::RefInterface.Release       = _Release2;
         T::RefInterface.GetRefCounter = _GetRefCounter2;
+#endif
     }
 
     template <typename X, typename std::enable_if<!HasRefInterface<X>::value, bool>::type = true>
@@ -919,6 +923,7 @@ public:
         return MFX_ERR_NONE;
     }
 
+#ifdef ONEVPL_EXPERIMENTAL
     static mfxStatus _AddRef2(mfxRefInterface* object)
     {
         MFX_CHECK_NULL_PTR1(object);
@@ -949,6 +954,7 @@ public:
         *counter = instance->GetRefCounter();
         return MFX_ERR_NONE;
     }
+#endif
 
 protected:
 

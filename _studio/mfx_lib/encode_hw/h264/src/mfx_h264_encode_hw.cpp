@@ -974,8 +974,10 @@ mfxStatus ImplementationAvc::InitScd(mfxFrameAllocRequest& request)
         m_video.mfx.FrameInfo.CropH, 
         m_video.mfx.FrameInfo.Width, 
         m_video.mfx.FrameInfo.PicStruct, 
+#ifdef MFX_ENABLE_ASC
 #ifdef MFX_ENABLE_KERNELS
         m_cmDevice, 
+#endif
 #endif
         IsCmNeededForSCD(m_video));
     MFX_CHECK_STS(sts);
@@ -2454,6 +2456,7 @@ mfxStatus ImplementationAvc::SCD_Put_Frame_Cm(DdiTask & task)
 {
     (void)task;
 #ifdef MFX_ENABLE_EXT
+#ifdef MFX_ENABLE_ASC
     task.m_SceneChange = false;
     mfxFrameSurface1 *pSurfI = nullptr;
     pSurfI = task.m_yuv;
@@ -2490,6 +2493,7 @@ mfxStatus ImplementationAvc::SCD_Put_Frame_Cm(DdiTask & task)
     return MFX_ERR_NONE;
 #else
     MFX_RETURN(MFX_ERR_UNSUPPORTED);
+#endif
 #endif
 }
 
@@ -2664,11 +2668,13 @@ mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLa
 mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 {
 #ifdef MFX_ENABLE_EXT
+#ifdef MFX_ENABLE_ASC
     if (task.m_wsSubSamplingEv)
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
         ReleaseResource(m_scd, (mfxHDL)task.m_wsGpuImage);
     }
+#endif
 #endif
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(m_video);
@@ -2751,6 +2757,7 @@ using namespace ns_asc;
 mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
 {
 #ifdef MFX_ENABLE_EXT
+#ifdef MFX_ENABLE_ASC
     if (task.m_wsSubSamplingEv && CommonCaps::IsCmSupported(m_core->GetHWType()))
     {
         MFX_SAFE_CALL(amtScd.ProcessQueuedFrame(&task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask, &task.m_wsGpuImage, &task.m_Yscd));
@@ -2761,6 +2768,7 @@ mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
     {
         amtScd.ProcessQueuedFrame(&task.m_Yscd);
     }
+#endif
 #endif
     task.m_frameLtrReassign = 0;
     task.m_LtrOrder = m_LtrOrder;

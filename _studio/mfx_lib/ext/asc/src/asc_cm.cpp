@@ -180,9 +180,10 @@ mfxStatus ASC_Cm::InitGPUsurf(CmDevice* pCmDevice) {
     case PLATFORM_INTEL_ADL_S:
     case PLATFORM_INTEL_ADL_P:
     case PLATFORM_INTEL_ADL_N:
-
+#ifdef MFX_ENABLE_ASC
         res = m_device->LoadProgram((void *)genx_scd_gen12lp, sizeof(genx_scd_gen12lp), m_program, "nojitter");
         break;
+#endif
     default:
         res = CM_NOT_IMPLEMENTED;
     }

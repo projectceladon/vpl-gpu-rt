@@ -60,7 +60,11 @@ CmProgram * ReadProgram(CmDevice * device, const mfxU8 * buffer, size_t len)
     return program;
 }
 
+#ifdef ANDROID
+CmKernel * CreateKernel(CmDevice * device, CmProgram * program, char const * name, const void * funcptr)
+#else
 CmKernel * CreateKernel(CmDevice * device, CmProgram * program, char const * name, void * funcptr)
+#endif
 {
     int result = CM_SUCCESS;
     CmKernel * kernel = 0;
@@ -870,15 +874,26 @@ void CmContext::Setup(
 
     if (m_program)
     {
+#ifdef ANDROID
+        m_kernelI = CreateKernel(m_device, m_program, "EncMB_I", CM_KERNEL_FUNCTION(EncMB_I));
+        m_kernelP = CreateKernel(m_device, m_program, "EncMB_P", CM_KERNEL_FUNCTION(EncMB_P));
+        m_kernelB = CreateKernel(m_device, m_program, "EncMB_B", CM_KERNEL_FUNCTION(EncMB_B));
+#else
         m_kernelI = CreateKernel(m_device, m_program, "EncMB_I", (void *)EncMB_I);
         m_kernelP = CreateKernel(m_device, m_program, "EncMB_P", (void *)EncMB_P);
         m_kernelB = CreateKernel(m_device, m_program, "EncMB_B", (void *)EncMB_B);
+#endif
     }
 
     if (m_programHist)
     {
+#ifdef ANDROID
+        m_kernelHistFrame = CreateKernel(m_device, m_programHist, "HistogramSLMFrame", CM_KERNEL_FUNCTION(HistogramFrame));
+        m_kernelHistFields = CreateKernel(m_device, m_programHist, "HistogramSLMFields", CM_KERNEL_FUNCTION(HistogramFields));
+#else
         m_kernelHistFrame = CreateKernel(m_device, m_programHist, "HistogramSLMFrame", (void *)HistogramFrame);
         m_kernelHistFields = CreateKernel(m_device, m_programHist, "HistogramSLMFields", (void *)HistogramFields);
+#endif
     }
     m_nullBuf.Reset(m_device, 4);
 

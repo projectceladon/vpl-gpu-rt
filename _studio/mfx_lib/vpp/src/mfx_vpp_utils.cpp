@@ -163,9 +163,11 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_IN,
     MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME_OUT,
+#ifdef ONEVPL_EXPERIMENTAL
     MFX_EXTBUF_CAM_PIPECONTROL,
     MFX_EXTBUF_CAM_3DLUT,
     MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION,
+#endif
     MFX_EXTBUF_CAM_WHITE_BALANCE,
     MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION,
     MFX_EXTBUF_CAM_BAYER_DENOISE,
@@ -1496,10 +1498,12 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
             break;
+#ifdef ONEVPL_EXPERIMENTAL
         case MFX_FOURCC_ABGR16F:
         case MFX_FOURCC_I420:
         case MFX_FOURCC_UYVY:
             break;
+#endif
         case MFX_FOURCC_ARGB16:
             break;
         case MFX_FOURCC_R16:
@@ -2368,6 +2372,7 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_FIELD_PROCESSING);
     }
 
+#ifdef ONEVPL_EXPERIMENTAL
     if (caps.cameraCaps.uGammaCorrection)
     {
         list.push_back(MFX_EXTBUF_CAM_FORWARD_GAMMA_CORRECTION);
@@ -2377,6 +2382,7 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     {
         list.push_back(MFX_EXTBUF_CAM_3DLUT);
     }
+#endif
 
     if (caps.cameraCaps.uWhiteBalance)
     {

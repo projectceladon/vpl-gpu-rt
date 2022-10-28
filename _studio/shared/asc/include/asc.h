@@ -117,6 +117,7 @@ typedef struct ASCextended_storage {
 class ASC {
 public:
     ASC();
+    virtual ~ASC();
 protected:
     mfxU32
         m_gpuImPitch,
