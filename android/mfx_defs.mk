@@ -64,17 +64,6 @@ MFX_CFLAGS += \
   -Wno-non-virtual-dtor \
   -mavx2
 
-ifeq ($(filter MFX_O MFX_O_MR1, $(MFX_ANDROID_VERSION)),)
-  ifeq ($(MFX_ENABLE_ITT_TRACES),)
-    # Enabled ITT traces by default
-    MFX_ENABLE_ITT_TRACES := true
-  endif
-endif
-
-ifeq ($(MFX_ENABLE_ITT_TRACES),true)
-  MFX_CFLAGS += -DMFX_TRACE_ENABLE_ITT
-endif
-
 # Enable feature with output decoded frames without latency regarding
 # SPS.VUI.max_num_reorder_frames
 ifeq ($(ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT),)
@@ -107,6 +96,11 @@ LOCAL_MODULE_OWNER := intel
 
 # Moving executables to proprietary location
 LOCAL_PROPRIETARY_MODULE := true
+
+LOCAL_CPPFLAGS := -Wno-deprecated-declarations \
+	          -Wno-missing-field-initializers \
+		  -Wno-implicit-fallthrough
+
 
 # =============================================================================
 

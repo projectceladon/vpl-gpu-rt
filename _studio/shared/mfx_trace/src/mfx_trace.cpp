@@ -40,7 +40,6 @@ extern "C"
 #include "mfx_trace_utils.h"
 #include "mfx_trace_textlog.h"
 #include "mfx_trace_stat.h"
-#include "mfx_trace_itt.h"
 #include "mfx_trace_ftrace.h"
 }
 #include <stdlib.h>
@@ -145,19 +144,6 @@ mfxTraceAlgorithm g_TraceAlgorithms[] =
         MFXTraceTAL_BeginTask,
         MFXTraceTAL_EndTask,
         MFXTraceTAL_Close
-    },
-#endif
-#ifdef MFX_TRACE_ENABLE_ITT
-    {
-        0,
-        MFX_TRACE_OUTPUT_ITT,
-        MFXTraceITT_Init,
-        MFXTraceITT_SetLevel,
-        MFXTraceITT_DebugMessage,
-        MFXTraceITT_vDebugMessage,
-        MFXTraceITT_BeginTask,
-        MFXTraceITT_EndTask,
-        MFXTraceITT_Close
     },
 #endif
 #ifdef MFX_TRACE_ENABLE_FTRACE
@@ -322,9 +308,6 @@ mfxTraceU32 MFXTrace_Init()
 #endif
 #if defined(MFX_TRACE_ENABLE_TAL)
     g_OutputMode |= MFX_TRACE_OUTPUT_TAL;
-#endif
-#if defined(MFX_TRACE_ENABLE_ITT)
-    g_OutputMode |= MFX_TRACE_OUTPUT_ITT;
 #endif
 #if defined(MFX_TRACE_ENABLE_FTRACE)
     g_OutputMode |= MFX_TRACE_OUTPUT_FTRACE;

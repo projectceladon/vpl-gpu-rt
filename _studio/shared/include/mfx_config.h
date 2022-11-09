@@ -77,17 +77,12 @@
 */
 #ifndef MFX_TRACE_DISABLE
 // Uncomment one or several lines below to enable tracing
-//#define MFX_TRACE_ENABLE_ITT
 #if !defined (MFX_TRACE_ENABLE_TEXTLOG)
 #define MFX_TRACE_ENABLE_TEXTLOG
 #endif
 //#define MFX_TRACE_ENABLE_STAT
-#if defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
-    // Accompany ITT trace with ftrace. This combination is used by VTune.
-    #define MFX_TRACE_ENABLE_FTRACE
-#endif
 
-#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
+#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_FTRACE)
 #define MFX_TRACE_ENABLE
 #endif
 #endif // #ifndef MFX_TRACE_DISABLE

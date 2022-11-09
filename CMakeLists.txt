@@ -74,7 +74,6 @@ include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
 include( ${BUILDER_ROOT}/BuildOptions.cmake )
 include( ${BUILDER_ROOT}/FindGlobals.cmake )
-include( ${BUILDER_ROOT}/FindITT.cmake )
 include( ${BUILDER_ROOT}/FindIPP.cmake OPTIONAL)
 include( ${BUILDER_ROOT}/FindPackages.cmake )
 
@@ -87,10 +86,6 @@ if (BUILD_RUNTIME)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-
-if (ENABLE_ITT)
-  target_link_libraries(mfx_common_properties INTERFACE itt)
-endif()
 
 message("")
 message("********************** oneVPL GPU Runtime Configuration Summary **********************")
@@ -137,7 +132,6 @@ message("  CMAKE_INSTALL_FULL_INCLUDEDIR           : ${CMAKE_INSTALL_FULL_INCLUD
 message("  CMAKE_INSTALL_FULL_LIBDIR               : ${CMAKE_INSTALL_FULL_LIBDIR}")
 message("  CMAKE_INSTALL_FULL_DATADIR              : ${CMAKE_INSTALL_FULL_DATADIR}")
 message("Enable:")
-message("  ENABLE_ITT                              : ${ENABLE_ITT}")
 message("  ENABLE_TEXTLOG                          : ${ENABLE_TEXTLOG}")
 message("  ENABLE_STAT                             : ${ENABLE_STAT}")
 message("  ENABLE_PXP                              : ${MFX_ENABLE_PXP}")

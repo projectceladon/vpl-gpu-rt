@@ -4,14 +4,12 @@ add_library(mfx_trace STATIC)
 target_sources(mfx_trace
   PRIVATE
     include/mfx_trace_ftrace.h
-    include/mfx_trace_itt.h
     include/mfx_trace_stat.h
     include/mfx_trace_textlog.h
     include/mfx_trace_utils.h
     include/sys/mfx_trace_utils_linux.h
     src/mfx_trace.cpp
     src/mfx_trace_ftrace.cpp
-    src/mfx_trace_itt.cpp
     src/mfx_trace_ir.cpp
     src/mfx_trace_stat.cpp
     src/mfx_trace_textlog.cpp

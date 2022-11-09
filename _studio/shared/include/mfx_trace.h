@@ -154,7 +154,6 @@ enum
     MFX_TRACE_OUTPUT_ETW    = 0x04,
     MFX_TRACE_OUTPUT_TAL    = 0x08,
 
-    MFX_TRACE_OUTPUT_ITT    = 0x10,
     MFX_TRACE_OUTPUT_FTRACE = 0x20,
     // special keys
     MFX_TRACE_OUTPUT_ALL     = 0xFFFFFFFF,

@@ -98,7 +98,6 @@ set(LIBS
   mfx_logging
   $<$<BOOL:${MFX_ENABLE_ENCTOOLS}>:enctools_base>
   ${HW_ONLY_LIBS}
-  $<$<BOOL:${ITT_FOUND}>:itt>
   Threads::Threads
   ${CMAKE_DL_LIBS}
   $<$<PLATFORM_ID:Windows>:cfgmgr32>

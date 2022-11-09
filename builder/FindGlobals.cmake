@@ -275,7 +275,6 @@ target_compile_definitions(mfx_common_properties
   INTERFACE
     $<$<BOOL:${ENABLE_TEXTLOG}>:MFX_TRACE_ENABLE_TEXTLOG>
     $<$<BOOL:${ENABLE_STAT}>:MFX_TRACE_ENABLE_STAT>
-    $<$<BOOL:${ENABLE_ITT}>:MFX_TRACE_ENABLE_ITT>
   )
 
 target_compile_definitions(mfx_common_properties

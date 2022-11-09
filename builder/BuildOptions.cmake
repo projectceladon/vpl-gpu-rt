@@ -42,8 +42,6 @@ option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 #
 option( ENABLE_ALL "Enable all dependencies and features?" OFF )
 
-  option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
-
 option( ENABLE_TEXTLOG "Enable textlog tracing?" ${ENABLE_ALL})
 option( ENABLE_STAT "Enable stat tracing?" ${ENABLE_ALL})
 

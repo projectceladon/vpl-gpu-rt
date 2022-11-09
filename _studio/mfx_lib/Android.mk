@@ -293,6 +293,7 @@ LOCAL_C_INCLUDES := \
     $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CPPFLAGS += -std=c++14
+
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
     -Wno-error -Wno-unused-parameter -Wno-implicit-fallthrough
@@ -331,10 +332,6 @@ LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 LOCAL_HEADER_LIBRARIES := libmfx_gen_headers
 LOCAL_WHOLE_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
 LOCAL_SHARED_LIBRARIES := libva liblog libcutils libdrm
-
-ifeq ($(MFX_ENABLE_ITT_TRACES),true)
-    LOCAL_WHOLE_STATIC_LIBRARIES += libittnotify
-endif
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libmfx-gen
