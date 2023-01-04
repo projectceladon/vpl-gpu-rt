@@ -444,6 +444,9 @@ namespace UMC_AV1_DECODER
 
             UMC::MediaData tmp = *in; // use local copy of [in] for OBU header parsing to not move data pointer in original [in] prematurely
 
+	    uint32_t original_max_frame_width = 0;
+	    uint32_t original_max_frame_height = 0;
+
             while (tmp.GetDataSize() >= MINIMAL_DATA_SIZE && gotFullFrame == false && repeatedFrame == false)
             {
                 const auto src = reinterpret_cast<uint8_t*>(tmp.GetDataPointer());
@@ -469,8 +472,26 @@ namespace UMC_AV1_DECODER
                 case OBU_SEQUENCE_HEADER:
                     if (!sequence_header.get())
                         sequence_header.reset(new SequenceHeader);
+		    else {
+			if (original_max_frame_width < sequence_header->max_frame_width ||
+			     original_max_frame_height < sequence_header->max_frame_height) {
+                            original_max_frame_width = sequence_header->max_frame_width;
+			    original_max_frame_height = sequence_header->max_frame_height;
+			}
+		    }
                     *sequence_header = SequenceHeader{};
                     bs.ReadSequenceHeader(*sequence_header);
+
+		    if (original_max_frame_width == 0 || original_max_frame_height == 0) {
+                        original_max_frame_width = sequence_header->max_frame_width;
+                        original_max_frame_height = sequence_header->max_frame_height;
+		    }
+
+		    if (original_max_frame_width < sequence_header->max_frame_width ||
+				    original_max_frame_height < sequence_header->max_frame_height) {
+                         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "AV1 Resolution is changed in sequence header.");
+                         return UMC::UMC_NTF_NEW_RESOLUTION;
+		    }
                     break;
                 case OBU_FRAME_HEADER:
                 case OBU_REDUNDANT_FRAME_HEADER:

@@ -892,6 +892,8 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
             UMC::Status umcRes = m_surface_source->HasFreeSurface() ?
                 m_decoder->GetFrame(bs ? &src : 0, nullptr) : UMC::UMC_ERR_NEED_FORCE_OUTPUT;
 
+            MFX_CHECK(umcRes != UMC::UMC_NTF_NEW_RESOLUTION, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
             UMC::Status umcFrameRes = umcRes;
 
              if (umcRes == UMC::UMC_NTF_NEW_RESOLUTION ||
