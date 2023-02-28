@@ -34,13 +34,14 @@
 #include "mfx_ext_buffers.h"
 #include "mfx_h264_encode_interface.h"
 #ifdef MFX_ENABLE_EXT
-#include "mfx_h264_encode_cm.h"
-#ifdef MFX_ENABLE_ASC
-#include "asc_cm.h"
-#endif
+  #include "mfx_h264_encode_cm.h"
+  #ifdef MFX_ENABLE_ASC
+    #include "asc_cm.h"
+  #endif
 #else
-#include "asc.h"
+  #include "asc.h"
 #endif
+
 #include "ippi.h"
 #include "libmfx_core_interface.h"
 
