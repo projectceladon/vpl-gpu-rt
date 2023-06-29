@@ -263,7 +263,7 @@ mfxTraceU32 mfx_trace_get_category_index(mfxTraceChar* category, mfxTraceU32& in
 
 inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized, mfxTraceU32 level)
 {
-    bool logFlag = false;
+    bool logFlag = true;
     if (m_OutputInitilized == MFX_TRACE_OUTPUT_TEXTLOG) {
 #ifndef NDEBUG
         if (g_Level == MFX_TXTLOG_LEVEL_MAX)

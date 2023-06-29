@@ -25,7 +25,7 @@
 extern "C"
 {
 
-#define MFT_TRACE_PATH_TO_TEMP_LIBLOG MFX_TRACE_STRING("/tmp/mfxlib.log")
+#define MFT_TRACE_PATH_TO_TEMP_LIBLOG MFX_TRACE_STRING("/data/local/tmp/mfx-gen.log")
 
 #include <stdio.h>
 #include "mfx_trace_utils.h"
@@ -85,8 +85,8 @@ mfxTraceU32 MFXTraceTextLog_Init()
     sts = MFXTraceTextLog_Close();
     if (!sts) sts = MFXTraceTextLog_GetRegistryParams();
 
-    std::string filename_path = "/tmp/mfxlib_Pid" + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
-    strcpy(g_mfxTracePrintfFileName,filename_path.c_str()); 
+    //std::string filename_path = "/tmp/mfxlib_Pid" + std::to_string(getpid()) + "_Tid" + std::to_string(pthread_self()) + ".log";
+    //strcpy(g_mfxTracePrintfFileName,filename_path.c_str()); 
 
     if (!sts)
     {
