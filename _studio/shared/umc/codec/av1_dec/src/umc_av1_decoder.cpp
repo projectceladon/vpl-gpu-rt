@@ -1103,6 +1103,7 @@ namespace UMC_AV1_DECODER
         par.lFlags = 0;
 
         par.film_grain = sh.film_grain_param_present;
+        par.color_config = sh.color_config;
 
         return UMC::UMC_OK;
     }

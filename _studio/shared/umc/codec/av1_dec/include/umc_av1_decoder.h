@@ -72,6 +72,7 @@ namespace UMC_AV1_DECODER
         bool                 anchors_loaded;
         uint32_t             skip_first_frames;
         mfxFrameSurface1**   pre_loaded_anchors;
+        ColorConfig          color_config;
     };
 
     class ReportItem // adopted from HEVC/AVC decoders
