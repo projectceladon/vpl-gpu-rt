@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <xf86drm.h>
-#include "va/va_drm.h"
+#include "va/drm/va_drm.h"
 
 #include "mediasdk_version.h"
 #include "libmfx_core_factory.h"
