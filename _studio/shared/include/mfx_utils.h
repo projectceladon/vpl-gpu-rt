@@ -319,7 +319,11 @@ template <class F>
 struct result_of;
 
 template <typename TRes, typename... TArgs>
+#ifdef ANDROID
+struct result_of<TRes(TArgs...)> {};
+#else
 struct result_of<TRes(TArgs...)> : std::result_of<TRes(TArgs...)> {};
+#endif
 
 template <typename TRes, typename... TArgs>
 struct result_of<TRes(*const&)(TArgs...)>

@@ -44,7 +44,7 @@
 
 #include "va/va.h"
 #include <va/va_backend.h>
-#include "va/va_drm.h"
+#include "va/drm/va_drm.h"
 #include <unistd.h>
 #include <fcntl.h>
 
