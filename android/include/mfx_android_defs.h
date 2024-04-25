@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2018 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,19 +18,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdexcept>
+#ifndef __MFX_ANDROID_DEFS_H__
+#define __MFX_ANDROID_DEFS_H__
 
-#include "mfx_common.h"
-#include "mfx_mpeg2_encode_hw.h"
-#if defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
-#include "mfx_mpeg2_encode_utils_hw.h"
+  #define MFX_ENABLE_ASC
+  #define MFX_ENABLE_CPLIB
 
+  #define MFX_ENABLE_VPP
 
+  #define MFX_ENABLE_VC1_VIDEO_DECODE
 
-MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEMPEG2_HW);
+  #define MFX_ENABLE_H265_VIDEO_DECODE
+  #define MFX_ENABLE_H265_VIDEO_ENCODE
 
+  #define MFX_ENABLE_H264_VIDEO_DECODE
+  #define MFX_ENABLE_H264_VIDEO_ENCODE
 
+  #define MFX_ENABLE_MJPEG_VIDEO_DECODE
+  #define MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
+  #define MFX_ENABLE_MPEG2_VIDEO_ENCODE
+  #define MFX_ENABLE_MPEG2_VIDEO_DECODE
 
+  #define MFX_ENABLE_VP8_VIDEO_DECODE
 
-#endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
+  #define MFX_ENABLE_VP9_VIDEO_DECODE
+  #define MFX_ENABLE_VP9_VIDEO_ENCODE
+
+  #define MFX_ENABLE_AV1_VIDEO_DECODE
+  #define MFX_ENABLE_AV1_VIDEO_ENCODE
+
+  #define MFX_ENABLE_EXT
+
+#if MFX_ANDROID_VERSION >= MFX_P
+  #define MFX_ENABLE_KERNELS
+#endif
+
+#endif // #ifndef __MFX_ANDROID_DEFS_H__

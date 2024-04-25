@@ -187,7 +187,7 @@ private:
 
 };
 
-MFX_PROPAGATE_GetSurface_VideoENCODE_Impl(MFXVideoENCODEMPEG2_HW);
+
 
 #endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
 #endif

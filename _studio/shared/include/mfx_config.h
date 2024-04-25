@@ -29,9 +29,15 @@
 #define UMC_VA_LINUX
 
 
-// mfx_features.h is auto-generated file containing mediasdk per-component
-// enable defines
-#include "mfx_features.h"
+#if defined(ANDROID)
+    // we don't support config auto-generation on Android and have hardcoded
+    // definition instead
+    #include "mfx_android_defs.h"
+#else
+    // mfxconfig.h is auto-generated file containing mediasdk per-component
+    // enable defines
+    #include "mfx_features.h"
+#endif
 
 #define SYNCHRONIZATION_BY_VA_MAP_BUFFER
 #if !defined(SYNCHRONIZATION_BY_VA_SYNC_SURFACE)
