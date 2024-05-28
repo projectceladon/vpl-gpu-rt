@@ -3452,7 +3452,7 @@ void SetDefaultGOP(
 
     if (pCO3)
     {
-        SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_ON);
+        SetDefault<mfxU16>(pCO3->GPB, MFX_CODINGOPTION_OFF);
 
         defPar.base.GetNumRefActive(
             defPar
