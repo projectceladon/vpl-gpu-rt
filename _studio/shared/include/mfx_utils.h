@@ -92,7 +92,7 @@ static inline T mfx_sts_trace(const char* fileName, const uint32_t lineNum, cons
 #define MFX_FAILED(sts)             (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
 #define MFX_RETURN(sts)             { return MFX_STS_TRACE(sts); }
 #define MFX_RETURN_IF_ERR_NONE(sts) { if (MFX_SUCCEEDED(sts)) return MFX_ERR_NONE; }
-#define MFX_CHECK(EXPR, ERR)        { if (!(EXPR)) MFX_RETURN(ERR); }
+#define MFX_CHECK(EXPR, ERR)        { if (!(EXPR)) { MFX_TRACE_S("MFX_CHECK false!") MFX_RETURN(ERR); }}
 
 #define MFX_CHECK_NO_RET(EXPR, STS, ERR){ if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); STS = ERR; } }
 

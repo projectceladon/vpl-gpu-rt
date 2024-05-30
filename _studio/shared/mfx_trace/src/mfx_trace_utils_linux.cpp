@@ -74,7 +74,7 @@ FILE* mfx_trace_open_conf_file(const char* name)
     std::stringstream ss;
 
 #if defined(ANDROID)
-    const char* home = "/data/data/com.intel.vtune/mediasdk";
+    const char* home = "/data/local";
 #else
     const char* home = getenv("HOME");
 #endif
