@@ -1,0 +1,102 @@
+cc_library_static {
+    name: "mfx_ext",
+
+    vendor: true,
+
+    defaults: [
+        "vpl-runtime-defaults",
+    ],
+
+    srcs: [
+        "_studio/mfx_lib/ext/genx/asc/isa/genx_scd_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/copy_kernels/isa/genx_copy_kernel_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/field_copy/isa/genx_fcopy_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/h264_encode/src/genx_simple_me_proto.cpp",
+        "_studio/mfx_lib/ext/genx/h264_encode/isa/genx_simple_me_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/h264_encode/isa/genx_histogram_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/mctf/isa/genx_mc_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/mctf/isa/genx_me_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/genx/mctf/isa/genx_sd_gen12lp_isa.cpp",
+        "_studio/mfx_lib/ext/mctf_package/mctf/src/mctf_common.cpp",
+        "_studio/mfx_lib/ext/h264/src/mfx_h264_encode_cm.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_debug_hw.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_full_hw.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_hw.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_utils_hw.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_vaapi.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_encode_factory.cpp",
+        "_studio/mfx_lib/ext/mpeg2/src/mfx_mpeg2_enc_common_hw.cpp",
+    ],
+
+    cflags: [
+        
+    ],
+
+    cppflags: [
+        "-O3",
+        "-DNDEBUG",
+        "-fPIC",
+        "-Wno-deprecated-declarations",
+        "-Wno-unknown-pragmas",
+        "-Wno-unused",
+        "-std=gnu++14",
+        "-DLINUX",
+        "-DLINUX32",
+        "-DLINUX64",
+        "-DMEDIA_VERSION_STR=24.1.5",
+        "-DMFX_API_VERSION=2.9+",
+        "-DMFX_BUILD_INFO=Ubuntu | GNU 11.4.0 | glibc 2.35",
+        "-DMFX_DEPRECATED_OFF",
+        "-DMFX_GIT_COMMIT=9c1340b5",
+        "-DMFX_ONEVPL",
+        "-DMFX_VERSION_USE_LATEST",
+        "-DMSDK_BUILD=",
+        "-DNDEBUG",
+        "-DONEVPL_EXPERIMENTAL",
+        "-DSYNCHRONIZATION_BY_VA_SYNC_SURFACE",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D__USE_LARGEFILE64",
+    ],
+
+    local_include_dirs: [
+        "_studio/mfx_lib/ext/genx/asc/isa",
+        "_studio/mfx_lib/ext/genx/copy_kernels/isa",
+        "_studio/mfx_lib/ext/genx/field_copy/isa",
+        "_studio/mfx_lib/ext/genx/h264_encode/isa",
+        "_studio/mfx_lib/ext/genx/mctf/isa",
+        "_studio/mfx_lib/ext/mctf_package/mctf/include",
+        "_studio/mfx_lib/ext/h264/include",
+        "_studio/shared/umc/codec/brc/include",
+        "_studio/mfx_lib/encode_hw/h264/include",
+        "_studio/mfx_lib/ext/mpeg2/include",
+        "_studio/mfx_lib/shared/include",
+        "_studio/shared/enctools/include",
+        "_studio/shared/include",
+        "build",
+        "api/vpl",
+        "api/mediasdk_structures",
+        "api/vpl/private",
+        "contrib/ipp/include",
+        "_studio/mfx_lib/ext/asc/include",
+        "_studio/mfx_lib/ext/cmrt_cross_platform/include",
+        "_studio/shared/asc/include",
+        "_studio/shared/umc/core/vm/include",
+        "_studio/shared/umc/core/umc/include",
+        "_studio/shared/mfx_logging/include",
+        "_studio/shared/umc/core/vm_plus/include",
+        "_studio/shared/umc/codec/h265_dec/include",
+        "_studio/shared/umc/codec/h264_dec/include",
+        "_studio/shared/umc/codec/av1_dec/include",
+        "_studio/shared/umc/codec/vp9_dec/include",
+        "_studio/shared/umc/io/umc_va/include",
+    ],
+
+    shared_libs: [
+        
+    ],
+
+    static_libs: [
+        
+    ],
+
+}

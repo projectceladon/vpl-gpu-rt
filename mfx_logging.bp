@@ -1,0 +1,77 @@
+cc_library_static {
+    name: "mfx_logging",
+
+    vendor: true,
+
+    defaults: [
+        "vpl-runtime-defaults",
+    ],
+
+    srcs: [
+        "_studio/shared/mfx_logging/src/mfx_utils_logging.cpp",
+        "_studio/shared/mfx_logging/src/mfx_utils_perf.cpp",
+        "_studio/shared/mfx_logging/src/mfx_unified_decode_logging.cpp",
+        "_studio/shared/mfx_logging/src/mfx_unified_h265d_logging.cpp",
+        "_studio/shared/mfx_logging/src/mfx_unified_h264d_logging.cpp",
+        "_studio/shared/mfx_logging/src/mfx_unified_av1d_logging.cpp",
+        "_studio/shared/mfx_logging/src/mfx_unified_vp9d_logging.cpp",
+    ],
+
+    cflags: [
+        
+    ],
+
+    cppflags: [
+        "-O3",
+        "-DNDEBUG",
+        "-fPIC",
+        "-Wno-deprecated-declarations",
+        "-Wno-unknown-pragmas",
+        "-Wno-unused",
+        "-std=gnu++14",
+        "-DLINUX",
+        "-DLINUX32",
+        "-DLINUX64",
+        "-DMEDIA_VERSION_STR=24.1.5",
+        "-DMFX_API_VERSION=2.9+",
+        "-DMFX_BUILD_INFO=Ubuntu | GNU 11.4.0 | glibc 2.35",
+        "-DMFX_DEPRECATED_OFF",
+        "-DMFX_GIT_COMMIT=9c1340b5",
+        "-DMFX_ONEVPL",
+        "-DMFX_VERSION_USE_LATEST",
+        "-DMSDK_BUILD=",
+        "-DNDEBUG",
+        "-DONEVPL_EXPERIMENTAL",
+        "-DSYNCHRONIZATION_BY_VA_SYNC_SURFACE",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D__USE_LARGEFILE64",
+    ],
+
+    local_include_dirs: [
+        "_studio/shared/mfx_logging/include",
+        "_studio/shared/umc/codec/h265_dec/include",
+        "_studio/shared/umc/codec/h264_dec/include",
+        "_studio/shared/umc/codec/av1_dec/include",
+        "_studio/shared/umc/codec/vp9_dec/include",
+        "_studio/shared/umc/io/umc_va/include",
+        "_studio/shared/include",
+        "_studio/mfx_lib/shared/include",
+        "build",
+        "api/vpl",
+        "api/mediasdk_structures",
+        "api/vpl/private",
+        "contrib/ipp/include",
+        "_studio/shared/umc/core/vm/include",
+        "_studio/shared/umc/core/umc/include",
+        "_studio/shared/umc/core/vm_plus/include",
+    ],
+
+    shared_libs: [
+        
+    ],
+
+    static_libs: [
+        
+    ],
+
+}

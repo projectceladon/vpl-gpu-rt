@@ -1,0 +1,99 @@
+cc_library_static {
+    name: "mfx_common_hw",
+
+    vendor: true,
+
+    defaults: [
+        "vpl-runtime-defaults",
+    ],
+
+    srcs: [
+        "_studio/mfx_lib/shared/src/mfx_feature_blocks_base.cpp",
+        "_studio/mfx_lib/shared/src/mfx_brc_common.cpp",
+        "_studio/mfx_lib/shared/src/mfx_common_decode_int.cpp",
+        "_studio/mfx_lib/shared/src/mfx_common_int.cpp",
+        "_studio/mfx_lib/shared/src/mfx_enc_common.cpp",
+        "_studio/mfx_lib/shared/src/mfx_log.cpp",
+        "_studio/mfx_lib/shared/src/mfx_enc_enctools_common.cpp",
+        "_studio/mfx_lib/shared/src/mfx_mpeg2_dec_common.cpp",
+        "_studio/mfx_lib/shared/src/mfx_vc1_dec_common.cpp",
+        "_studio/mfx_lib/shared/src/mfx_critical_error_handler.cpp",
+        "_studio/mfx_lib/shared/src/mfx_ddi_enc_dump.cpp",
+        "_studio/mfx_lib/shared/src/mfx_vpx_dec_common.cpp",
+    ],
+
+    cflags: [
+        
+    ],
+
+    cppflags: [
+        "-O3",
+        "-DNDEBUG",
+        "-fPIC",
+        "-Wno-deprecated-declarations",
+        "-Wno-unknown-pragmas",
+        "-Wno-unused",
+        "-std=gnu++14",
+        "-DLINUX",
+        "-DLINUX32",
+        "-DLINUX64",
+        "-DMEDIA_VERSION_STR=24.1.5",
+        "-DMFX_API_VERSION=2.9+",
+        "-DMFX_BUILD_INFO=Ubuntu | GNU 11.4.0 | glibc 2.35",
+        "-DMFX_DEPRECATED_OFF",
+        "-DMFX_GIT_COMMIT=9c1340b5",
+        "-DMFX_ONEVPL",
+        "-DMFX_VERSION_USE_LATEST",
+        "-DMSDK_BUILD=",
+        "-DNDEBUG",
+        "-DONEVPL_EXPERIMENTAL",
+        "-DSYNCHRONIZATION_BY_VA_SYNC_SURFACE",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D__USE_LARGEFILE64",
+    ],
+
+    local_include_dirs: [
+        "_studio/mfx_lib/shared/include",
+        "_studio/mfx_lib/shared/include/feature_blocks",
+        "_studio/shared/umc/codec/brc/include",
+        "_studio/shared/umc/codec/vc1_common/include",
+        "_studio/shared/umc/codec/vc1_dec/include",
+        "_studio/shared/asc/include",
+        "_studio/shared/include",
+        "_studio/shared/mfx_logging/include",
+        "_studio/shared/enctools/include",
+        "build",
+        "api/vpl",
+        "api/mediasdk_structures",
+        "api/vpl/private",
+        "contrib/ipp/include",
+        "_studio/shared/umc/io/umc_va/include",
+        "_studio/shared/umc/core/umc/include",
+        "_studio/shared/umc/core/vm/include",
+        "_studio/shared/umc/core/vm_plus/include",
+        "_studio/shared/umc/codec/h265_dec/include",
+        "_studio/shared/umc/codec/h264_dec/include",
+        "_studio/shared/umc/codec/av1_dec/include",
+        "_studio/shared/umc/codec/vp9_dec/include",
+        "_studio/mfx_lib/ext/genx/asc/isa",
+        "_studio/mfx_lib/ext/genx/copy_kernels/isa",
+        "_studio/mfx_lib/ext/genx/field_copy/isa",
+        "_studio/mfx_lib/ext/genx/h264_encode/isa",
+        "_studio/mfx_lib/ext/genx/mctf/isa",
+        "_studio/mfx_lib/ext/mctf_package/mctf/include",
+        "_studio/mfx_lib/ext/h264/include",
+        "_studio/mfx_lib/encode_hw/h264/include",
+        "_studio/mfx_lib/ext/mpeg2/include",
+        "_studio/mfx_lib/ext/asc/include",
+        "_studio/mfx_lib/ext/cmrt_cross_platform/include",
+    ],
+
+    shared_libs: [
+        
+    ],
+
+    static_libs: [
+        
+    ],
+
+}
