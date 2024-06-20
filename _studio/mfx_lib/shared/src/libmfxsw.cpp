@@ -32,6 +32,9 @@
 #include <fcntl.h>
 #include <xf86drm.h>
 #include "va/drm/va_drm.h"
+#include <va/va_android.h>
+#include "va/va_backend.h"
+#include "va_drmcommon.h"
 
 #include "mediasdk_version.h"
 #include "libmfx_core_factory.h"
@@ -610,82 +613,80 @@ GetAdapterInfo(mfxU64 adapterId)
     return result;
 }
 
+#define MFX_VA_ANDROID_DISPLAY_ID 0x18c34078
+
 static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfxU64, const std::vector<bool>& ) > QueryImpls)
 {
-    for (int i = 0; i < 64; ++i)
+    std::string path;
+
     {
-        std::string path;
+        mfxU32 vendorId = 0;
 
+        path = std::string("/sys/class/drm/renderD128/device/vendor");
+        FILE* file = fopen(path.c_str(), "r");
+
+        if (!file)
+            return false;
+
+        int nread = fscanf(file, "%x", &vendorId);
+        fclose(file);
+
+        if (nread != 1 || vendorId != 0x8086)
+            return false;
+    }
+
+    mfxU32 deviceId = 0;
+    {
+        path = std::string("/sys/class/drm/renderD128/device/device");
+
+        FILE* file = fopen(path.c_str(), "r");
+        if (!file)
+            return false;
+
+        int nread = fscanf(file, "%x", &deviceId);
+        fclose(file);
+
+        if (nread != 1)
+            return false;
+    }
+
+    {
+        unsigned int displayId = MFX_VA_ANDROID_DISPLAY_ID;
+        VADisplay vaDisplay = vaGetDisplay(&displayId);
+        if (vaDisplay == nullptr)
+            return false;
+
+        VADisplayContextP ctx = (VADisplayContextP)vaDisplay;
+        drm_state* drm = (drm_state*)ctx->pDriverContext->drm_state;
+        int fd = drm->fd;
+
+        int vamajor = 0, vaminor = 0;
+        if (VA_STATUS_SUCCESS != vaInitialize(vaDisplay, &vamajor, &vaminor))
+            return false;
+
+        std::shared_ptr<VADisplay> closeVA(&vaDisplay, [vaDisplay](VADisplay*) { vaTerminate(vaDisplay); });
+
+        VADisplayAttribute attr = {};
+        attr.type = VADisplayAttribSubDevice;
+        auto sts = vaGetDisplayAttributes(vaDisplay, &attr, 1);
+        std::ignore = MFX_STS_TRACE(sts);
+
+        VADisplayAttribValSubDevice out = {};
+        out.value = attr.value;
+
+        std::vector<bool> subDevMask(VA_STATUS_SUCCESS == sts ? out.bits.sub_device_count : 0);
+        for (std::size_t id = 0; id < subDevMask.size(); ++id)
         {
-            mfxU32 vendorId = 0;
-
-            path = std::string("/sys/class/drm/renderD") + std::to_string(128 + i) + "/device/vendor";
-            FILE* file = fopen(path.c_str(), "r");
-
-            if (!file)
-                break;
-
-            int nread = fscanf(file, "%x", &vendorId);
-            fclose(file);
-
-            if (nread != 1 || vendorId != 0x8086)
-                continue;
+            subDevMask[id] = !!((1 << id) & out.bits.sub_device_mask);
         }
-
-        mfxU32 deviceId = 0;
         {
-            path = std::string("/sys/class/drm/renderD") + std::to_string(128 + i) + "/device/device";
+            std::unique_ptr<VideoCORE> pCore(FactoryCORE::CreateCORE(MFX_HW_VAAPI, 0, {}, 0));
 
-            FILE* file = fopen(path.c_str(), "r");
-            if (!file)
-                break;
+            if (pCore->SetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL)vaDisplay))
+                return false;
 
-            int nread = fscanf(file, "%x", &deviceId);
-            fclose(file);
-
-            if (nread != 1)
-                break;
-        }
-
-        path = std::string("/dev/dri/renderD") + std::to_string(128 + i);
-
-        int fd = open(path.c_str(), O_RDWR);
-        if (fd < 0)
-            continue;
-
-        std::shared_ptr<int> closeFile(&fd, [fd](int*) { close(fd); });
-
-        {
-            auto displ = vaGetDisplayDRM(fd);
-
-            int vamajor = 0, vaminor = 0;
-            if (VA_STATUS_SUCCESS != vaInitialize(displ, &vamajor, &vaminor))
-                continue;
-
-            std::shared_ptr<VADisplay> closeVA(&displ, [displ](VADisplay*) { vaTerminate(displ); });
-
-            VADisplayAttribute attr = {};
-            attr.type = VADisplayAttribSubDevice;
-            auto sts = vaGetDisplayAttributes(displ, &attr, 1);
-            std::ignore = MFX_STS_TRACE(sts);
-
-            VADisplayAttribValSubDevice out = {};
-            out.value = attr.value;
-
-            std::vector<bool> subDevMask(VA_STATUS_SUCCESS == sts ? out.bits.sub_device_count : 0);
-            for (std::size_t id = 0; id < subDevMask.size(); ++id)
-            {
-                subDevMask[id] = !!((1 << id) & out.bits.sub_device_mask);
-            }
-            {
-                std::unique_ptr<VideoCORE> pCore(FactoryCORE::CreateCORE(MFX_HW_VAAPI, 0, {}, 0));
-
-                if (pCore->SetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL)displ))
-                    continue;
-
-                if (!QueryImpls(*pCore, deviceId, i, fd, subDevMask))
-                    return false;
-            }
+            if (!QueryImpls(*pCore, deviceId, 0, fd, subDevMask))
+                return false;
         }
     }
     return true;
