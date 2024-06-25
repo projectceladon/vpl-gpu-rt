@@ -66,6 +66,7 @@ namespace UMC_AV1_DECODER
             , matrix_coefficients(AOM_CICP_MC_UNSPECIFIED)
             , framerate_n(0)
             , framerate_d(0)
+            , bitDepth(0)
         {}
 
     public:
@@ -86,6 +87,7 @@ namespace UMC_AV1_DECODER
         uint32_t             matrix_coefficients;
         uint32_t             framerate_n;
         uint32_t             framerate_d;
+        uint32_t             bitDepth;
     };
 
     class ReportItem // adopted from HEVC/AVC decoders

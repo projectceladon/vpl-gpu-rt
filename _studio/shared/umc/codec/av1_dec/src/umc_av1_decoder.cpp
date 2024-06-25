@@ -1162,6 +1162,7 @@ namespace UMC_AV1_DECODER
 
         par.framerate_n = sh.timing_info.time_scale;
         par.framerate_d = sh.timing_info.num_units_in_display_tick;
+        par.bitDepth = sh.color_config.BitDepth;
         if (sh.timing_info.num_units_in_display_tick && sh.timing_info.time_scale)
         {
             par.info.framerate = sh.timing_info.time_scale / sh.timing_info.num_units_in_display_tick;
