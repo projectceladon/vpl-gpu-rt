@@ -142,12 +142,11 @@ void VATaskSupplier::InitFrameCounter(H265DecoderFrame * pFrame, const H265Slice
     TaskSupplier_H265::InitFrameCounter(pFrame, pSlice);
 }
 
-UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet,
-                                            const H265PicParamSet *, UMC::ColorFormat colorFormat)
+UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize dimensions, const H265SeqParamSet* pSeqParamSet, const H265PicParamSet *)
 {
-    UMC::ColorFormat chroma_format_idc = colorFormat;
+    UMC::ColorFormat chroma_format_idc = pFrame->GetColorFormat();
     UMC::VideoDataInfo info;
-    int32_t bit_depth = color_format2bit_depth(chroma_format_idc);
+    int32_t bit_depth = pSeqParamSet->need16bitOutput ? 10 : 8;
     info.Init(dimensions.width, dimensions.height, chroma_format_idc, bit_depth);
 
     UMC::FrameMemID frmMID;
