@@ -157,3 +157,7 @@ EXTBUF(mfxExtAllocationHints, MFX_EXTBUFF_ALLOCATION_HINTS)
 #include "mfxencodestats.h"
 EXTBUF(mfxExtEncodeStatsOutput, MFX_EXTBUFF_ENCODESTATS)
 #endif
+
+// encrytion
+EXTBUF(mfxExtEncryptionParam             , MFX_EXTBUFF_ENCRYPTION_PARAM          )
+EXTBUF(mfxExtProtectedSession            , MFX_EXTBUFF_PROTECTEDSESSION_PARAM    )

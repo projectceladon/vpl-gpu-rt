@@ -28,6 +28,7 @@ VideoProcessingVA::VideoProcessingVA()
     , m_surf_region()
     , m_output_surf_region()
     , m_currentOutputSurface()
+    , m_bs(nullptr)
 {
 }
 

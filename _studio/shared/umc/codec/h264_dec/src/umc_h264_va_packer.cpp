@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
+#include <string.h>
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include "umc_h264_va_packer.h"
@@ -369,6 +370,41 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferH264));
     TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_PICTUREPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_PICPARAM,
             pPicParams_H264, H264DecodePicparam, PICTUREPARAM_AVC);
+
+    // The following is the process of encrypted data
+    mfxBitstream *bs = m_va->GetVideoProcessingVA()->GetBitstream();
+    if (!bs)
+        throw h264_exception(UMC_ERR_FAILED);
+
+    if (!bs->EncryptedData) // no encryptedData need to process
+        return;
+
+    UMCVACompBuffer *protectedSliceDataBuffer, *encryptionParameterBuffer;
+    // copy bs->EncryptedData->Data to pProtectedSlice
+    void* pProtectedSlice = m_va->GetCompBuffer(VAProtectedSliceDataBufferType, &protectedSliceDataBuffer, bs->EncryptedData->DataLength);
+    if (!pProtectedSlice)
+        throw h264_exception(UMC_ERR_FAILED);
+
+    memcpy(pProtectedSlice, bs->EncryptedData->Data + bs->EncryptedData->DataOffset, bs->EncryptedData->DataLength);
+    protectedSliceDataBuffer->SetDataSize(bs->EncryptedData->DataLength);
+
+    // copy mfxExtEncryptionParam to VAEncryptionParameters
+    VAEncryptionParameters* pEncryptionParam = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &encryptionParameterBuffer, sizeof(VAEncryptionParameters));
+    if (!pEncryptionParam)
+        throw h264_exception(UMC_ERR_FAILED);
+    memset(pEncryptionParam, 0, sizeof(VAEncryptionParameters));
+
+    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
+    if (!extEncryptionParam)
+        throw h264_exception(UMC_ERR_FAILED);
+
+    pEncryptionParam->encryption_type = extEncryptionParam->encryption_type;
+    for (uint32_t i = 0; i < extEncryptionParam->uiNumSegments; i++)
+    {
+        memcpy(&pEncryptionParam->segment_info[i], &extEncryptionParam->pSegmentInfo[i], sizeof(pEncryptionParam->segment_info));
+    }
+
+    encryptionParameterBuffer->SetDataSize(sizeof(encryptionParameterBuffer));
 }
 
 

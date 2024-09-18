@@ -1163,6 +1163,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
 
     params.m_protectedVA      = param->Protected;
 
+    auto extProtectedSessionParam = reinterpret_cast<mfxExtProtectedSession*>(GetExtendedBuffer(
+            param->ExtParam, param->NumExtParam, MFX_EXTBUFF_PROTECTEDSESSION_PARAM));
+    if (extProtectedSessionParam) {
+        params.m_protectedSessionID = static_cast<VAProtectedSessionID>(extProtectedSessionParam->VAProtectedSessionID);
+    }
+
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
