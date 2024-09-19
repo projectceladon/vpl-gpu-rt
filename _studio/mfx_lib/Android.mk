@@ -344,7 +344,7 @@ LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 LOCAL_CPPFLAGS += -std=c++14
 
 LOCAL_WHOLE_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
-LOCAL_SHARED_LIBRARIES := libva liblog libcutils libdrm libva-android
+LOCAL_SHARED_LIBRARIES := libva liblog libcutils libdrm
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libmfx-gen
