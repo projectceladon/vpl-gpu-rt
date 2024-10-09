@@ -313,7 +313,7 @@ mfxTraceU32 mfx_trace_get_category_index(mfxTraceChar* category, mfxTraceU32& in
 
 inline bool MFXTrace_IsPrintableCategoryAndLevel(mfxTraceU32 m_OutputInitilized, mfxTraceU32 level)
 {
-    bool logFlag = false;
+    bool logFlag = true;
     if (m_OutputInitilized == MFX_TRACE_OUTPUT_TEXTLOG) {
 #ifndef NDEBUG
         if (g_Level == MFX_TXTLOG_LEVEL_MAX)
@@ -400,7 +400,7 @@ mfxTraceU32 MFXTrace_Init()
         g_OutputMode = 0;
         for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
         {
-            if (output_mode & g_TraceAlgorithms[i].m_OutputMask)
+            if (1)
             {
                 sts = g_TraceAlgorithms[i].m_InitFn();
                 if (sts == 0)
@@ -434,7 +434,7 @@ mfxTraceU32 MFXTrace_Close(void)
 
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             res = g_TraceAlgorithms[i].m_CloseFn();
             if (!sts && res) sts = res;
@@ -460,7 +460,7 @@ mfxTraceU32 MFXTrace_SetLevel(mfxTraceChar* category, mfxTraceLevel level)
 
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             res = g_TraceAlgorithms[i].m_SetLevelFn(category, level);
             if (!sts && res) sts = res;
@@ -484,7 +484,7 @@ mfxTraceU32 MFXTrace_DebugMessage(mfxTraceStaticHandle *static_handle,
     va_start(args, format);
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
 
@@ -515,7 +515,7 @@ mfxTraceU32 MFXTrace_vDebugMessage(mfxTraceStaticHandle *static_handle,
 
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
 
@@ -552,7 +552,7 @@ mfxTraceU32 MFXTrace_BeginTask(mfxTraceStaticHandle *static_handle,
 
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
 
@@ -593,7 +593,7 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 
     for (i = 0; i < sizeof(g_TraceAlgorithms)/sizeof(mfxTraceAlgorithm); ++i)
     {
-        if (g_OutputMode & g_TraceAlgorithms[i].m_OutputInitilized)
+        if (1)
         {
             if (!MFXTrace_IsPrintableCategoryAndLevel(g_TraceAlgorithms[i].m_OutputInitilized, level)) continue;
 
