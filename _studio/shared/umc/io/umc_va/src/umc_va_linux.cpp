@@ -538,6 +538,14 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
             umcRes = va_to_umc_res(va_res);
         }
+
+        if (pParams->m_protectedSessionID > 0 && UMC_OK == umcRes)
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaAttachProtectedSession");
+
+            va_res = vaAttachProtectedSession(m_dpy, *m_pContext, pParams->m_protectedSessionID);
+            umcRes = va_to_umc_res(va_res);
+        }
     }
     return umcRes;
 }

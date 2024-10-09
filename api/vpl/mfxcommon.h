@@ -148,7 +148,22 @@ typedef enum
 
 } mfxPriority;
 
-typedef struct _mfxEncryptedData mfxEncryptedData;
+typedef struct {
+    mfxU64  IV;
+    mfxU64  Count;
+} mfxAES128CipherCounter;
+
+struct mfxEncryptedData {
+    mfxEncryptedData *Next;
+    mfxHDL reserved1;
+    mfxU8  *Data;
+    mfxU32 DataOffset; /* offset, in bytes, from beginning of buffer to first byte of encrypted data*/
+    mfxU32 DataLength; /* size of plain data in bytes */
+    mfxU32 MaxLength; /*allocated  buffer size in bytes*/
+    mfxAES128CipherCounter CipherCounter;
+    mfxU32 reserved2[8];
+};
+
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 /*! Defines the buffer that holds compressed video data. */
 typedef struct {

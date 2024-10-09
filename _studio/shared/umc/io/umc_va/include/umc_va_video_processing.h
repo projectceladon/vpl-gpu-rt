@@ -41,6 +41,8 @@ public:
     virtual void SetOutputSurface(mfxHDL surfHDL);
 
     mfxHDL GetCurrentOutputSurface() const;
+    virtual mfxBitstream* GetBitstream() { return m_bs; }
+    virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
 
     VAProcPipelineParameterBuffer m_pipelineParams;
 
@@ -51,6 +53,7 @@ protected:
     VASurfaceID output_surface_array[1];
 
     mfxHDL m_currentOutputSurface;
+    mfxBitstream* m_bs;
 #endif // #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
 };
 

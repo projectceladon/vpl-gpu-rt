@@ -2397,6 +2397,9 @@ enum {
     */
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION = MFX_MAKEFOURCC('V','A','S','R'),
 #endif
+
+    MFX_EXTBUFF_ENCRYPTION_PARAM        = MFX_MAKEFOURCC('E', 'N', 'C', 'R'),
+    MFX_EXTBUFF_PROTECTEDSESSION_PARAM  = MFX_MAKEFOURCC('V', 'A', 'P', 'S'),
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5116,6 +5119,37 @@ typedef struct {
 } mfxExtVPPAISuperResolution;
 MFX_PACK_END()
 #endif
+
+typedef struct {
+    mfxExtBuffer    Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_PROTECTEDSESSION_PARAM. */
+    mfxU64          VAProtectedSessionID;
+} mfxExtProtectedSession;
+
+typedef struct {
+    /** \brief  The offset relative to the start of the bitstream input in
+     *  bytes of the start of the segment */
+    mfxU32 segment_start_offset;
+    /** \brief  The length of the segments in bytes */
+    mfxU32 segment_length;
+    /** \brief  The length in bytes of the remainder of an incomplete block
+     *  from a previous segment*/
+    mfxU32 partial_aes_block_size;
+    /** \brief  The length in bytes of the initial clear data */
+    mfxU32 init_byte_length;
+    /** \brief  This will be AES counter for secure decode and secure encode
+     *  when numSegments equals 1, valid size is specified by
+     * \c key_blob_size */
+    mfxU8 aes_cbc_iv_or_ctr[64];
+    /** \brief Reserved bytes for future use, must be zero */
+    mfxU32 va_reserved[8];
+} EncryptionSegmentInfo;
+
+typedef struct {
+    mfxExtBuffer Header;      /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCRYPTION_PARAM. */
+    mfxU32 encryption_type;
+    mfxU32 uiNumSegments;
+    EncryptionSegmentInfo *pSegmentInfo;
+} mfxExtEncryptionParam;
 
 #ifdef __cplusplus
 } // extern "C"

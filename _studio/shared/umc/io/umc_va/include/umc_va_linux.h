@@ -78,6 +78,7 @@ public:
         m_pContext           = NULL;
         m_pKeepVAState       = NULL;
         m_CreateFlags        = VA_PROGRESSIVE;
+        m_protectedSessionID = 0;
     }
 
     VADisplay     m_Display;
@@ -86,6 +87,8 @@ public:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     int           m_CreateFlags;
+
+    VAProtectedSessionID m_protectedSessionID;
 };
 
 /* LinuxVideoAccelerator -----------------------------------------------------*/
