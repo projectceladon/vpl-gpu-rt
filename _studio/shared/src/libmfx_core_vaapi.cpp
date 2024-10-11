@@ -1163,10 +1163,10 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
 
     params.m_protectedVA      = param->Protected;
 
-    auto extProtectedSessionParam = reinterpret_cast<mfxExtProtectedSession*>(GetExtendedBuffer(
-            param->ExtParam, param->NumExtParam, MFX_EXTBUFF_PROTECTEDSESSION_PARAM));
-    if (extProtectedSessionParam) {
-        params.m_protectedSessionID = static_cast<VAProtectedSessionID>(extProtectedSessionParam->VAProtectedSessionID);
+    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(
+            param->ExtParam, param->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
+    if (extEncryptionParam) {
+        params.encryption_type = static_cast<VAProtectedSessionID>(extEncryptionParam->encryption_type);
     }
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE

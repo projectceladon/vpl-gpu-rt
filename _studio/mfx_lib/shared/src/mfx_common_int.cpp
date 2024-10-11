@@ -570,7 +570,6 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
                                                                MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
 #endif
                                                                MFX_EXTBUFF_ALLOCATION_HINTS,
-                                                               MFX_EXTBUFF_PROTECTEDSESSION_PARAM,
                                                                MFX_EXTBUFF_ENCRYPTION_PARAM
     };
 

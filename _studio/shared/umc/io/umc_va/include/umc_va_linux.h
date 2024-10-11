@@ -78,7 +78,6 @@ public:
         m_pContext           = NULL;
         m_pKeepVAState       = NULL;
         m_CreateFlags        = VA_PROGRESSIVE;
-        m_protectedSessionID = 0;
     }
 
     VADisplay     m_Display;
@@ -88,7 +87,7 @@ public:
     bool*         m_pKeepVAState;
     int           m_CreateFlags;
 
-    VAProtectedSessionID m_protectedSessionID;
+    uint32_t encryption_type;
 };
 
 /* LinuxVideoAccelerator -----------------------------------------------------*/
@@ -149,11 +148,15 @@ protected:
     void SetTraceStrings(uint32_t umc_codec);
     virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
 
+    VAProtectedSessionID CreateProtectedSession(uint32_t encryption_type);
+    Status AttachProtectedSession(VAProtectedSessionID session_id);
+
 protected:
 
     VADisplay     m_dpy;
     VAConfigID*   m_pConfigId;
     VAContextID*  m_pContext;
+    VAProtectedSessionID m_pProtectedSessionID;
     bool*         m_pKeepVAState;
     lvaFrameState m_FrameState;
 

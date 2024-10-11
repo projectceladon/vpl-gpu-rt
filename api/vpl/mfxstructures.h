@@ -2399,7 +2399,6 @@ enum {
 #endif
 
     MFX_EXTBUFF_ENCRYPTION_PARAM        = MFX_MAKEFOURCC('E', 'N', 'C', 'R'),
-    MFX_EXTBUFF_PROTECTEDSESSION_PARAM  = MFX_MAKEFOURCC('V', 'A', 'P', 'S'),
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5119,11 +5118,6 @@ typedef struct {
 } mfxExtVPPAISuperResolution;
 MFX_PACK_END()
 #endif
-
-typedef struct {
-    mfxExtBuffer    Header;         /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_PROTECTEDSESSION_PARAM. */
-    mfxU64          VAProtectedSessionID;
-} mfxExtProtectedSession;
 
 typedef struct {
     /** \brief  The offset relative to the start of the bitstream input in

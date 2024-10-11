@@ -372,7 +372,7 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
             pPicParams_H264, H264DecodePicparam, PICTUREPARAM_AVC);
 
     // The following is the process of encrypted data
-    mfxBitstream *bs = m_va->GetVideoProcessingVA()->GetBitstream();
+    mfxBitstream *bs = m_va->GetBitstream();
     if (!bs)
         throw h264_exception(UMC_ERR_FAILED);
 
@@ -551,6 +551,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
 
     assert (CompBuf->GetBufferSize() >= pSlice_H264->slice_data_offset + AlignedNalUnitSize);
 
+    // TODO: handle encrypted data
     pVAAPI_BitStreamBuffer += pSlice_H264->slice_data_offset;
 
     std::copy(pNalUnit, pNalUnit + NalUnitSize, pVAAPI_BitStreamBuffer);

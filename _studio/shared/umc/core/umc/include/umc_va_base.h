@@ -262,6 +262,8 @@ public:
 
     virtual bool IsIntelCustomGUID() const = 0;
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
+    virtual mfxBitstream* GetBitstream() { return m_bs; }
+    virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
 
 #if defined(MFX_ENABLE_PROTECT)
     virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }
@@ -372,6 +374,7 @@ protected:
     bool                 m_bH264MVCSupport;
     bool                 m_isUseStatuReport;
     int32_t              m_H265ScalingListScanOrder; //0 - up-right, 1 - raster . Default is 1 (raster).
+    mfxBitstream*        m_bs;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
