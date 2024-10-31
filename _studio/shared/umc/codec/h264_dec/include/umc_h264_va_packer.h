@@ -108,6 +108,8 @@ protected:
 
     void FillFrameAsInvalid(VAPictureH264 * pic);
 
+    void PackEncryptedParams();
+
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     void PackProcessingInfo(H264DecoderFrameInfo * sliceInfo);
 #endif

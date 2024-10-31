@@ -499,10 +499,19 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        int32_t attribsNumber = 2;
+        int32_t attribsNumber = 4;
+        // int32_t attribsNumber = 2;
         if (UMC_OK == umcRes)
         {
             umcRes = SetAttributes(va_profile, pParams, va_attributes, &attribsNumber);
+            for (int i = 0; i < UMC_VA_LINUX_ATTRIB_SIZE; i++)
+            {
+                if (va_attributes[i].type == VAConfigAttribEncryption)
+                {
+                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "set VAConfigAttribEncryption = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR");
+                    va_attributes[i].value = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+                }
+            }
         }
 
         if (UMC_OK == umcRes)
@@ -586,6 +595,7 @@ Status LinuxVideoAccelerator::SetAttributes(VAProfile va_profile, LinuxVideoAcce
 
 VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encryption_type)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "LinuxVideoAccelerator::CreateProtectedSession");
     VAStatus va_status = VA_STATUS_SUCCESS;
 
     int num_entrypoints = vaMaxNumEntrypoints(m_dpy);
@@ -630,7 +640,7 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encr
                                         attrib_cp, attrib_count);
     MFX_CHECK(VA_STATUS_SUCCESS == va_status, VA_INVALID_ID);
 
-    attrib_cp[0].value = VA_PC_SESSION_MODE_LITE; // session_mode
+    attrib_cp[0].value = VA_PC_SESSION_MODE_HEAVY; // session_mode
     attrib_cp[1].value = VA_PC_SESSION_TYPE_DISPLAY; // session_type
     attrib_cp[2].value = VA_PC_CIPHER_AES;
     attrib_cp[3].value = VA_PC_BLOCK_SIZE_128;
@@ -649,6 +659,7 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encr
     MFX_CHECK(VA_STATUS_SUCCESS == va_status, VA_INVALID_ID);
 
     VAProtectedSessionID session = VA_INVALID_ID;
+    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "vaCreateProtectedSession");
     va_status = vaCreateProtectedSession(m_dpy, config_id, &session);
 
     VAStatus destroy_status = vaDestroyConfig(m_dpy, config_id);
@@ -903,6 +914,11 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
 
         PERF_UTILITY_AUTO("vaCreateBuffer", PERF_LEVEL_DDI);
         va_res = vaCreateBuffer(m_dpy, *m_pContext, va_type, va_size, va_num_elements, NULL, &id);
+        if (VAEncryptionParameterBufferType == va_type)
+        {
+            MFX_TRACE_1("VAEncryptionParameterBufferType va_res = ", "%d",  va_res);
+            MFX_TRACE_1("VAEncryptionParameterBufferType id = ", "%d",  id);
+        }
     }
     if (VA_STATUS_SUCCESS == va_res)
     {
@@ -956,9 +972,14 @@ LinuxVideoAccelerator::Execute()
 
             if (pCompBuf->GetType() == VAEncryptionParameterBufferType && 0 == m_pProtectedSessionID)
             {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType");
                 VAEncryptionParameters* pEncryptionParam = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
                 m_pProtectedSessionID = CreateProtectedSession(pEncryptionParam->encryption_type);
                 umcRes = AttachProtectedSession(m_pProtectedSessionID);
+                if (UMC_OK != umcRes) {
+                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
+                    MFX_TRACE_I(umcRes);
+                }
             }
 
             {
