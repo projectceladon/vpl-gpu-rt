@@ -962,7 +962,7 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(sliceInfo);
 #endif
-        PackEncryptedParams();
+        // PackEncryptedParams();
 
         Status sts = m_va->Execute();
         if (sts != UMC_OK)

@@ -1211,6 +1211,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
     m_va->SetBitstream(bs);
+    m_va->DecryptCTR(bs);
 
     try
     {

@@ -27,6 +27,9 @@
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
+#include "mfx_common_int.h"
+
+#include "va_protected_content.h"
 #include "va_protected_content_private.h"
 
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
@@ -508,8 +511,8 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             {
                 if (va_attributes[i].type == VAConfigAttribEncryption)
                 {
-                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "set VAConfigAttribEncryption = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR");
-                    va_attributes[i].value = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "set VAConfigAttribEncryption = VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR");
+                    va_attributes[i].value = VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR;
                 }
             }
         }
@@ -914,11 +917,6 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
 
         PERF_UTILITY_AUTO("vaCreateBuffer", PERF_LEVEL_DDI);
         va_res = vaCreateBuffer(m_dpy, *m_pContext, va_type, va_size, va_num_elements, NULL, &id);
-        if (VAEncryptionParameterBufferType == va_type)
-        {
-            MFX_TRACE_1("VAEncryptionParameterBufferType va_res = ", "%d",  va_res);
-            MFX_TRACE_1("VAEncryptionParameterBufferType id = ", "%d",  id);
-        }
     }
     if (VA_STATUS_SUCCESS == va_res)
     {
@@ -970,8 +968,10 @@ LinuxVideoAccelerator::Execute()
             }
             if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
 
-            if (pCompBuf->GetType() == VAEncryptionParameterBufferType && 0 == m_pProtectedSessionID)
+            if (pCompBuf->GetType() == VAEncryptionParameterBufferType /*&& 0 == m_pProtectedSessionID*/)
             {
+                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType+");
+                /*
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType");
                 VAEncryptionParameters* pEncryptionParam = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
                 m_pProtectedSessionID = CreateProtectedSession(pEncryptionParam->encryption_type);
@@ -979,7 +979,7 @@ LinuxVideoAccelerator::Execute()
                 if (UMC_OK != umcRes) {
                     MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
                     MFX_TRACE_I(umcRes);
-                }
+                }*/
             }
 
             {
@@ -1050,6 +1050,231 @@ int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx) const
         return VA_INVALID_SURFACE;
 
     return *surface;
+}
+
+mfxStatus LinuxVideoAccelerator::DecryptCTR(mfxBitstream* bs)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LinuxVideoAccelerator::DecryptCTR");
+
+    mfxStatus stsRet = MFX_ERR_NONE;
+    VAStatus va_sts = VA_STATUS_SUCCESS;
+    static std::atomic<uint32_t> count = 0;
+    if (nullptr == bs->EncryptedData)
+        return MFX_ERR_NONE;
+
+    if (nullptr == bs->EncryptedData->Data || 0 == bs->EncryptedData->DataLength)
+        return MFX_ERR_NONE;
+
+    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(bs->ExtParam,
+                                bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
+
+    if (nullptr == extEncryptionParam)
+        return MFX_ERR_INVALID_HANDLE;
+
+    if (0 == m_pProtectedSessionID)
+    {
+        m_pProtectedSessionID = CreateProtectedSession(extEncryptionParam->encryption_type);
+        Status umcRes = AttachProtectedSession(m_pProtectedSessionID);
+        if (UMC_OK != umcRes) {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
+            MFX_TRACE_I(umcRes);
+        }
+    }
+
+    // commit a surface to receive decrypted slice headers
+    // setup VACencStatusBuf
+    VASurfaceID decryptedSurface = VA_INVALID_ID;
+    constexpr size_t kDecryptQuerySizeAndAlignment = 4096;
+    constexpr size_t kVaQueryCencBufferSize = 2048;
+    constexpr int kCencStatusSurfaceDimension = 64;
+    void* res = nullptr;
+    posix_memalign(&res, kDecryptQuerySizeAndAlignment, kDecryptQuerySizeAndAlignment);
+    std::unique_ptr<uint8_t> output_surface_buf((uint8_t*)res);
+    auto cencStatusBuf = reinterpret_cast<VACencStatusBuf*>(output_surface_buf.get());
+    auto slice_param_buf = std::make_unique<VACencSliceParameterBufferH264>();
+    auto queryCencBuffer = std::make_unique<uint8_t[]>(kVaQueryCencBufferSize);
+    {
+        cencStatusBuf->status = VA_ENCRYPTION_STATUS_INCOMPLETE;
+        cencStatusBuf->buf = queryCencBuffer.get();
+        cencStatusBuf->buf_size = kVaQueryCencBufferSize;
+        cencStatusBuf->slice_buf_type = VaCencSliceBufParamter;
+        cencStatusBuf->slice_buf_size = sizeof(VACencSliceParameterBufferH264);
+        cencStatusBuf->slice_buf = slice_param_buf.get();
+
+        std::vector<VASurfaceAttrib> va_attribs(2);
+        va_attribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        va_attribs[0].type = VASurfaceAttribMemoryType;
+        va_attribs[0].value.type = VAGenericValueTypeInteger;
+        va_attribs[0].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+
+        auto buffer_ptr_alloc = std::make_unique<uintptr_t>();
+        uintptr_t* buffer_ptr = buffer_ptr_alloc.get();
+        buffer_ptr[0] = reinterpret_cast<uintptr_t>(output_surface_buf.get());
+
+        VASurfaceAttribExternalBuffers va_attrib_extbuf{};
+        va_attrib_extbuf.num_planes = 3;
+        va_attrib_extbuf.buffers = buffer_ptr;
+        va_attrib_extbuf.data_size = 3 * kCencStatusSurfaceDimension * kCencStatusSurfaceDimension;
+        va_attrib_extbuf.num_buffers = 1u;
+        va_attrib_extbuf.width = kCencStatusSurfaceDimension;
+        va_attrib_extbuf.height = kCencStatusSurfaceDimension;
+        va_attrib_extbuf.offsets[0] = 0;
+        va_attrib_extbuf.offsets[1] = kCencStatusSurfaceDimension;
+        va_attrib_extbuf.offsets[2] = kCencStatusSurfaceDimension * 2;
+        std::fill(va_attrib_extbuf.pitches, va_attrib_extbuf.pitches + 3, kCencStatusSurfaceDimension);
+        va_attrib_extbuf.pixel_format = VA_FOURCC_RGBP;
+
+        va_attribs[1].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        va_attribs[1].type = VASurfaceAttribExternalBufferDescriptor;
+        va_attribs[1].value.type = VAGenericValueTypePointer;
+        va_attribs[1].value.value.p = &va_attrib_extbuf;
+
+        va_sts = vaCreateSurfaces(m_dpy, VA_RT_FORMAT_RGBP, kCencStatusSurfaceDimension, kCencStatusSurfaceDimension,
+                                                &decryptedSurface, 1, &va_attribs[0], va_attribs.size());
+        MFX_TRACE_1("vaCreateSurfaces() failed va_sts = ", "%d", va_sts);
+        if (VA_STATUS_SUCCESS != va_sts)
+        {
+            return MFX_ERR_UNKNOWN;
+        }
+    }
+
+    // protectedSliceData
+    VABufferID protectedSliceData = VA_INVALID_ID;
+    mfxU8* buffer = nullptr;
+    if (VA_STATUS_SUCCESS != vaCreateBuffer(m_dpy, *m_pContext, VAProtectedSliceDataBufferType,
+                                bs->EncryptedData->DataLength, 1, NULL, &protectedSliceData))
+        return MFX_ERR_UNKNOWN;
+    if (VA_STATUS_SUCCESS != vaMapBuffer(m_dpy, protectedSliceData, (void**)&buffer))
+        return MFX_ERR_UNKNOWN;
+    if (buffer == nullptr)
+        return MFX_ERR_MEMORY_ALLOC;
+    
+    std::copy(bs->EncryptedData->Data, bs->EncryptedData->Data + bs->EncryptedData->DataLength, buffer);
+    vaUnmapBuffer(m_dpy, protectedSliceData);
+
+    // encryptionParameterBuffer
+    UMCVACompBuffer *encryptionParameterBuffer;
+    VAEncryptionParameters* pEncryptionParam = (VAEncryptionParameters*)GetCompBuffer(VAEncryptionParameterBufferType,
+                                                &encryptionParameterBuffer, sizeof(VAEncryptionParameters), -1);
+    if (!pEncryptionParam)
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "pEncryptionParam is nullptr");
+    memset(pEncryptionParam, 0, sizeof(VAEncryptionParameters));
+
+    memcpy(pEncryptionParam->wrapped_decrypt_blob, extEncryptionParam->key_blob, 16);
+
+    pEncryptionParam->key_blob_size = 16;
+
+    pEncryptionParam->encryption_type = extEncryptionParam->encryption_type;
+
+    MFX_TRACE_I(pEncryptionParam->encryption_type);
+
+    pEncryptionParam->segment_info = new VAEncryptionSegmentInfo[extEncryptionParam->uiNumSegments];
+    if (!pEncryptionParam->segment_info)
+        return MFX_ERR_NOT_ENOUGH_BUFFER;
+
+    for (uint32_t i = 0; i < extEncryptionParam->uiNumSegments; i++)
+    {
+        memcpy(&pEncryptionParam->segment_info[i], &extEncryptionParam->pSegmentInfo[i], sizeof(*pEncryptionParam->segment_info));
+    }
+     
+    pEncryptionParam->num_segments = extEncryptionParam->uiNumSegments;
+    pEncryptionParam->status_report_index = ++count;
+    MFX_TRACE_I(pEncryptionParam->num_segments);
+
+    for (uint32_t i = 0; i < pEncryptionParam->num_segments; i++)
+    {
+        pEncryptionParam->segment_info[i].segment_start_offset = 0;
+        pEncryptionParam->segment_info[i].segment_length = bs->EncryptedData->DataLength;
+        pEncryptionParam->segment_info[i].init_byte_length = 0;
+        MFX_TRACE_I(pEncryptionParam->segment_info[i].segment_length);
+    }
+
+    // Submit data and handle results
+    {
+        va_sts = vaBeginPicture(m_dpy, *m_pContext, decryptedSurface);
+        MFX_TRACE_1("vaBeginPicture() va_sts = ", "%d", va_sts);
+        if (VA_STATUS_SUCCESS != va_sts)
+        {
+            MFX_TRACE_1("vaBeginPicture() failed va_sts = ", "%d", va_sts);
+            return MFX_ERR_UNKNOWN;
+        }
+
+        std::vector<VABufferID> buffers;
+        auto vaCompBuffer = dynamic_cast<VACompBuffer*>(encryptionParameterBuffer);
+        if (nullptr == vaCompBuffer)
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "encryptionParameterBuffer is not VACompBuffer!");
+            return MFX_ERR_UNKNOWN;
+        }
+        buffers.push_back(vaCompBuffer->GetID());
+        buffers.push_back(protectedSliceData);
+
+        va_sts = vaRenderPicture(m_dpy, *m_pContext, buffers.data(), buffers.size());
+        MFX_TRACE_1("vaRenderPicture() va_sts = ", "%d", va_sts);
+        if (VA_STATUS_SUCCESS != va_sts)
+        {
+            MFX_TRACE_1("vaRenderPicture() failed va_sts = ", "%d", va_sts);
+            return MFX_ERR_UNKNOWN;
+        }
+
+        va_sts = vaEndPicture(m_dpy, *m_pContext);
+        MFX_TRACE_1("vaEndPicture() va_sts = ", "%d", va_sts);
+        if (VA_STATUS_SUCCESS != va_sts)
+        {
+            MFX_TRACE_1("vaEndPicture() failed va_sts = ", "%d", va_sts);
+            stsRet = MFX_ERR_UNKNOWN;
+        }
+
+        if (VA_ENCRYPTION_STATUS_SUCCESSFUL != cencStatusBuf->status)
+        {
+            MFX_TRACE_I(cencStatusBuf->status);
+        }
+        MFX_TRACE_I(cencStatusBuf->status_report_index_feedback);
+
+        // release resources manually
+        if (MFX_ERR_NONE != CheckAndDestroyVAbuffer(m_dpy, buffers[0]))
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "CheckAndDestroyVAbuffer failed");
+            stsRet = MFX_ERR_UNKNOWN;
+        }
+        if (MFX_ERR_NONE != CheckAndDestroyVAbuffer(m_dpy, buffers[1]))
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "CheckAndDestroyVAbuffer failed");
+            stsRet = MFX_ERR_UNKNOWN;
+        }
+
+        for (uint32_t i = 0; i < m_uiCompBuffersUsed; ++i)
+        {
+            if (m_pCompBuffers[i]->GetType() == VAEncryptionParameterBufferType)
+            {
+                UMC_DELETE(m_pCompBuffers[i]);
+                m_uiCompBuffersUsed--;
+            }
+        }
+    }
+
+    // check decryption status and results
+    if (cencStatusBuf->status != VA_ENCRYPTION_STATUS_SUCCESSFUL)
+    {
+        MFX_TRACE_1("cencStatusBuf->status is not successful status = ", "%d", cencStatusBuf->status);
+        stsRet = MFX_ERR_UNKNOWN;
+    }
+    MFX_TRACE_I(slice_param_buf->nal_ref_idc);
+    MFX_TRACE_I(slice_param_buf->idr_pic_flag);
+    MFX_TRACE_I(slice_param_buf->slice_type);
+    MFX_TRACE_I(slice_param_buf->field_frame_flag);
+    MFX_TRACE_I(slice_param_buf->frame_number);
+    MFX_TRACE_I(slice_param_buf->idr_pic_id);
+    MFX_TRACE_I(slice_param_buf->pic_order_cnt_lsb);
+    MFX_TRACE_I(slice_param_buf->delta_pic_order_cnt_bottom);
+    MFX_TRACE_I(slice_param_buf->delta_pic_order_cnt[0]);
+    MFX_TRACE_I(slice_param_buf->delta_pic_order_cnt[1]);
+    MFX_TRACE_I(slice_param_buf->ref_pic_fields.bits.no_output_of_prior_pics_flag);
+    MFX_TRACE_I(slice_param_buf->ref_pic_fields.bits.long_term_reference_flag);
+    MFX_TRACE_I(slice_param_buf->ref_pic_fields.bits.adaptive_ref_pic_marking_mode_flag);
+    MFX_TRACE_I(slice_param_buf->ref_pic_fields.bits.dec_ref_pic_marking_count);
+
+    return stsRet;
 }
 
 uint16_t LinuxVideoAccelerator::GetDecodingError(VASurfaceID *surface)

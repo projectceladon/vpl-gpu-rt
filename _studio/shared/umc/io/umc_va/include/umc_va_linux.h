@@ -129,6 +129,7 @@ public:
     bool IsIntelCustomGUID() const override
     { return false; }
     int32_t GetSurfaceID (int32_t idx) const override;
+    mfxStatus DecryptCTR(mfxBitstream* bs);
 
     void GetVideoDecoder(void** /*handle*/) override
     {};

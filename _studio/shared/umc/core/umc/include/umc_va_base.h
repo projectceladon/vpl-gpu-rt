@@ -264,6 +264,7 @@ public:
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
     virtual mfxBitstream* GetBitstream() { return m_bs; }
     virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
+    virtual mfxStatus DecryptCTR(mfxBitstream* bs) = 0;
 
 #if defined(MFX_ENABLE_PROTECT)
     virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }
