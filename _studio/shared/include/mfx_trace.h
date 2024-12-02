@@ -55,6 +55,20 @@
 typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;
 
+inline std::string FormatHex(const uint8_t* data, size_t len)
+{
+    std::ostringstream ss;
+    ss << std::hex;
+    for (size_t i = 0; i < len; ++i) {
+        if (i > 40) {
+            ss << std::dec << std::setw(0) << "... [" << len << "]";
+            break;
+        }
+        ss << std::setw(2) << std::setfill('0') << (uint32_t)data[i] << " ";
+    }
+    return ss.str();
+};
+
 /*------------------------------------------------------------------------------*/
 extern mfxTraceU64 EventCfg;
 extern mfxTraceU32 LogConfig;

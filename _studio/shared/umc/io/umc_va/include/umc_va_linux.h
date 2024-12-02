@@ -26,6 +26,7 @@
 
 #include <mutex>
 #include <set>
+#include <array>
 
 namespace UMC
 {
@@ -136,6 +137,8 @@ public:
     Status ExecuteExtension(int, ExtensionData const&) override
     { return UMC_ERR_UNSUPPORTED; }
 
+    bool DecryptCTR(mfxExtEncryptionParam* extEncryptionParam, VAEncryptionParameters* pEncryptionParam);
+
 protected:
 
     // VideoAcceleratorExt methods
@@ -148,15 +151,26 @@ protected:
     void SetTraceStrings(uint32_t umc_codec);
     virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
 
-    VAProtectedSessionID CreateProtectedSession(uint32_t encryption_type);
+    VAProtectedSessionID CreateProtectedSession(uint32_t session_mode,
+                                                uint32_t session_type,
+                                                VAEntrypoint entrypoint,
+                                                uint32_t encryption_type);
     Status AttachProtectedSession(VAProtectedSessionID session_id);
+    bool InitKey();
+    bool PassThrough(void* input, size_t input_size, void* output, size_t output_size);
+    bool SelectKey();
+    bool SetStreamKey();
 
 protected:
 
     VADisplay     m_dpy;
     VAConfigID*   m_pConfigId;
     VAContextID*  m_pContext;
-    VAProtectedSessionID m_pProtectedSessionID;
+    VAProtectedSessionID m_protectedSessionID;
+    VAProtectedSessionID    m_heci_sessionID;
+    std::array<uint8_t, 16> m_selectKey;
+    std::pair<std::array<uint8_t, 16>, bool> m_key_blob;
+    uint32_t      m_key_session;
     bool*         m_pKeepVAState;
     lvaFrameState m_FrameState;
 

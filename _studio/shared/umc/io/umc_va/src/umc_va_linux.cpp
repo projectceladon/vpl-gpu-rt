@@ -20,6 +20,7 @@
 
 #include <umc_va_base.h>
 #include <memory>
+#include <array>
 
 #include "umc_defs.h"
 #include "umc_va_linux.h"
@@ -28,9 +29,51 @@
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
 #include "va_protected_content_private.h"
+#include <log/log.h>
 
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
+
+union pavp_header_stream_t {
+    uint32_t dw;
+    struct {
+        uint32_t pavp_session_index : 7;
+        uint32_t app_type : 1;
+        uint32_t reserved : 23;
+        uint32_t valid : 1;
+    } fields;
+};
+union pavp_42_header_stream_t {
+    uint32_t dw;
+    struct {
+        uint32_t valid : 1;
+        uint32_t app_type : 1;
+        uint32_t stream_id : 16;
+        uint32_t reserved : 14;
+    } fields;
+};
+constexpr uint32_t FIRMWARE_API_VERSION_2_1 = ((2 << 16) | (1));
+constexpr uint32_t FIRMWARE_API_VERSION_4_2 = ((4 << 16) | (2));
+struct pavp_cmd_header_t {
+    uint32_t api_version = FIRMWARE_API_VERSION_2_1;
+    uint32_t command_id;
+    union {
+        uint32_t status;
+        pavp_header_stream_t stream_id;
+        pavp_42_header_stream_t stream_id_42;
+    };
+    uint32_t buffer_len;
+};
+struct wv20_select_key_in {
+    pavp_cmd_header_t header;
+    uint32_t session_id;
+    uint32_t key_id_size;
+    uint8_t key_id[];
+};
+struct wv20_select_key_out {
+    pavp_cmd_header_t header;
+};
+constexpr u_int32_t wv20_select_key = 0x00C2000D;
 
 UMC::Status va_to_umc_res(VAStatus va_res)
 {
@@ -327,7 +370,11 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
 #endif
 
     m_bH264MVCSupport   = false;
-    m_pProtectedSessionID = 0;
+    m_protectedSessionID = VA_INVALID_ID;
+    m_heci_sessionID = VA_INVALID_ID;
+    memset(m_key_blob.first.data(), 0, 16);
+    m_key_blob.second = false;
+    m_key_session = -1;
     memset(&m_guidDecoder, 0 , sizeof(GUID));
 }
 
@@ -552,8 +599,9 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (pParams->encryption_type > 0 && UMC_OK == umcRes)
         {
-            m_pProtectedSessionID = CreateProtectedSession(pParams->encryption_type);
-            umcRes = AttachProtectedSession(m_pProtectedSessionID);
+            m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
+                                    VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pParams->encryption_type);
+            umcRes = AttachProtectedSession(m_protectedSessionID);
         }
     }
     return umcRes;
@@ -593,7 +641,10 @@ Status LinuxVideoAccelerator::SetAttributes(VAProfile va_profile, LinuxVideoAcce
     return UMC_OK;
 }
 
-VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encryption_type)
+VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t session_mode,
+                                                                   uint32_t session_type,
+                                                                   VAEntrypoint entrypoint,
+                                                                   uint32_t encryption_type)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "LinuxVideoAccelerator::CreateProtectedSession");
     VAStatus va_status = VA_STATUS_SUCCESS;
@@ -613,7 +664,7 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encr
 
     int entr = 0;
     for (entr = 0; entr < num_entrypoints; entr++) {
-        if (entrypoints[entr] == VAEntrypointProtectedContent)
+        if (entrypoints[entr] == entrypoint)
         break;
     }
     MFX_CHECK(entr != num_entrypoints, VA_INVALID_ID);
@@ -640,8 +691,8 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encr
                                         attrib_cp, attrib_count);
     MFX_CHECK(VA_STATUS_SUCCESS == va_status, VA_INVALID_ID);
 
-    attrib_cp[0].value = VA_PC_SESSION_MODE_HEAVY; // session_mode
-    attrib_cp[1].value = VA_PC_SESSION_TYPE_DISPLAY; // session_type
+    attrib_cp[0].value = session_mode;
+    attrib_cp[1].value = session_type;
     attrib_cp[2].value = VA_PC_CIPHER_AES;
     attrib_cp[3].value = VA_PC_BLOCK_SIZE_128;
     attrib_cp[4].value = VA_PC_CIPHER_MODE_CTR;
@@ -654,18 +705,26 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t encr
     attrib_cp[6].value = VA_PC_USAGE_DEFAULT;
 
     VAConfigID config_id;
-    va_status = vaCreateConfig(m_dpy, VAProfileProtected, VAEntrypointProtectedContent, attrib_cp,
+    va_status = vaCreateConfig(m_dpy, VAProfileProtected, entrypoint, attrib_cp,
                                 attrib_count, &config_id);
-    MFX_CHECK(VA_STATUS_SUCCESS == va_status, VA_INVALID_ID);
+    if (va_status != VA_STATUS_SUCCESS)
+    {
+        MFX_TRACE_1("vaCreateConfig failed: ", "%d", va_status);
+        return VA_INVALID_ID;
+    }
 
     VAProtectedSessionID session = VA_INVALID_ID;
     MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "vaCreateProtectedSession");
     va_status = vaCreateProtectedSession(m_dpy, config_id, &session);
+    if (va_status != VA_STATUS_SUCCESS)
+    {
+        MFX_TRACE_1("vaCreateProtectedSession failed: ", "%d", va_status);
+        return VA_INVALID_ID;
+    }
 
-    VAStatus destroy_status = vaDestroyConfig(m_dpy, config_id);
-
-    if (destroy_status != VA_STATUS_SUCCESS)
-        MFX_TRACE_1("", "Error cleaning up config: %d", destroy_status);
+    va_status = vaDestroyConfig(m_dpy, config_id);
+    if (va_status != VA_STATUS_SUCCESS)
+        MFX_TRACE_1("vaDestroyConfig: ", "%d", va_status);
 
     typedef struct _intel_oem_policy_t {
         uint8_t pavp_type;
@@ -723,6 +782,279 @@ Status LinuxVideoAccelerator::AttachProtectedSession(VAProtectedSessionID sessio
     }
 
     return umcRes;
+}
+
+bool LinuxVideoAccelerator::InitKey()
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LinuxVideoAccelerator::InitKey");
+    if (VA_INVALID_ID == m_protectedSessionID)
+        return false;
+    // Get App id
+    uint32_t app_id = 0xFF;
+    VABufferID buffer = 0;
+    VAProtectedSessionExecuteBuffer execBuff = {0};
+    VAStatus va_status;
+    execBuff.function_id = VA_TEE_EXEC_GPU_FUNCID_GET_SESSION_ID;
+    execBuff.input.data_size = 0;
+    execBuff.input.data = nullptr;
+    execBuff.output.data_size = sizeof(uint32_t);
+    execBuff.output.data = (void*)&app_id;
+    va_status = vaCreateBuffer(m_dpy, m_protectedSessionID,
+                            VAProtectedSessionExecuteBufferType,
+                            sizeof(execBuff), 1, &execBuff, &buffer);
+    if (va_status) {
+        MFX_TRACE_1("vaCreateBuffer() failed va_sts = ", "%d", va_status);
+        return false;
+    }
+    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
+    va_status = vaProtectedSessionExecute(m_dpy, m_protectedSessionID, buffer);
+    vaDestroyBuffer(m_dpy, buffer);
+    if (va_status) {
+        MFX_TRACE_1("vaProtectedSessionExecute fail va_status = ", "%d", va_status);
+        return false;
+    }
+    app_id = app_id & 0x7F;  // remove bit7 for app_type information
+    MFX_TRACE_I(app_id);
+    // GetWrappedTitleKey
+    constexpr uint32_t wv20_get_wrapped_title_keys = 0x00C20022;
+    struct wv20_get_wrapped_title_keys_in {
+        pavp_cmd_header_t header;
+        uint32_t session_id;
+    } cmd_in;
+    struct wv20_get_wrapped_title_keys_out {
+        pavp_cmd_header_t header;
+        uint32_t num_keys;
+        uint32_t title_key_obj_offset;
+        uint32_t buffer_size;
+        uint8_t buffer[];
+    };
+    constexpr uint32_t PAVP_HECI_IO_BUFFER_SIZE = 16 * 1024;
+    cmd_in.header.command_id = wv20_get_wrapped_title_keys; // command id
+    cmd_in.header.stream_id_42.fields.valid = 1;
+    cmd_in.header.stream_id_42.fields.app_type = 0; // pavp::PAVP_APPTYPE_DISPLAYABLE
+    cmd_in.header.stream_id_42.fields.stream_id = app_id;
+    cmd_in.header.buffer_len = sizeof(wv20_get_wrapped_title_keys_in) - sizeof(pavp_cmd_header_t);
+    cmd_in.session_id = m_key_session;
+    MFX_TRACE_I(cmd_in.session_id);
+    auto pCmd_out = std::make_unique<uint8_t[]>(PAVP_HECI_IO_BUFFER_SIZE + sizeof(wv20_get_wrapped_title_keys_out));
+    auto cmd_out = reinterpret_cast<wv20_get_wrapped_title_keys_out*>(pCmd_out.get());
+    cmd_out->buffer_size = PAVP_HECI_IO_BUFFER_SIZE;
+    PassThrough(&cmd_in, sizeof(wv20_get_wrapped_title_keys_in), cmd_out, PAVP_HECI_IO_BUFFER_SIZE + sizeof(wv20_get_wrapped_title_keys_out));
+    struct wrapped_title_key_t {
+        uint32_t key_id_size;
+        uint32_t key_id_offset;
+        uint32_t enc_title_key_offset;
+    };
+    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "get title key +");
+    const wrapped_title_key_t* wtk = reinterpret_cast<const wrapped_title_key_t*>(
+                                    cmd_out->buffer + cmd_out->title_key_obj_offset);
+    MFX_TRACE_I(cmd_out->title_key_obj_offset);
+    MFX_TRACE_I(wtk->key_id_size);
+    for (uint32_t i = 0; i < cmd_out->num_keys; i++, wtk++)
+    {
+        if ((uint64_t)wtk->key_id_offset + wtk->key_id_size > cmd_out->buffer_size)
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "Offset points past end of buffer");
+            return false;
+        }
+        const uint8_t* key_id_to_compare = cmd_out->buffer + wtk->key_id_offset;
+        MFX_TRACE_1("select_key = ", "%s", FormatHex(m_selectKey.data(), 16).c_str());
+        MFX_TRACE_1("got key id = ", "%s", FormatHex(key_id_to_compare, wtk->key_id_size).c_str());
+        if (memcmp(m_selectKey.data(), key_id_to_compare, wtk->key_id_size) == 0)
+        {
+            // key blob
+            uint8_t* key_blob_start = cmd_out->buffer + wtk->enc_title_key_offset;
+            std::copy(key_blob_start, key_blob_start + 16, m_key_blob.first.begin());
+            MFX_TRACE_1("got key_blob = ", "%s", FormatHex(m_key_blob.first.begin(), 16).c_str());
+            m_key_blob.second = true;
+            break;
+        }
+    }
+    if (!m_key_blob.second)
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "Cannot find right key blob!");
+        return false;
+    }
+    return true;
+}
+
+bool LinuxVideoAccelerator::PassThrough(void* input, size_t input_size, void* output, size_t output_size)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LinuxVideoAccelerator::PassThrough");
+    if (VA_INVALID_ID == m_heci_sessionID)
+    {
+        // create HECI session
+        m_heci_sessionID = CreateProtectedSession(VA_PC_SESSION_MODE_NONE, VA_PC_SESSION_TYPE_NONE,
+                                            VAEntrypointProtectedTEEComm, VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR);
+        if (m_heci_sessionID == VA_INVALID_ID) {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL,"Create HECI session fails");
+            return false;
+        }
+    }
+    if (output_size == 16)
+    {
+        auto p = reinterpret_cast<wv20_select_key_out*>(output);
+        MFX_TRACE_I(p->header.api_version);
+    }
+    VABufferID buffer;
+    VAProtectedSessionExecuteBuffer execBuff = {0};
+    execBuff.function_id = VA_TEE_EXECUTE_FUNCTION_ID_PASS_THROUGH;
+    execBuff.input.data_size = input_size;
+    execBuff.input.data = input;
+    execBuff.output.data_size = output_size;
+    execBuff.output.data = output;
+    VAStatus va_status = vaCreateBuffer(m_dpy, m_heci_sessionID, VAProtectedSessionExecuteBufferType,
+                           sizeof(execBuff), 1, &execBuff, &buffer);
+    if (va_status) {
+        MFX_TRACE_1("vaCreateBuffer() failed va_sts = ", "%d", va_status);
+        return false;
+    }
+    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
+    va_status = vaProtectedSessionExecute(m_dpy, m_heci_sessionID, buffer);
+    pavp_cmd_header_t* pIHeader = static_cast<pavp_cmd_header_t*>(input);
+    pavp_cmd_header_t* pOHeader = static_cast<pavp_cmd_header_t*>(output);
+    vaDestroyBuffer(m_dpy, buffer);
+    if (va_status || pOHeader->status) {
+        MFX_TRACE_3("PassThrough failed ", "command id = %d, va_status = %d, pOHeader->status = %d",
+                pIHeader->command_id, va_status, pOHeader->status);
+        return false;
+    }
+    return true;
+}
+
+bool LinuxVideoAccelerator::SelectKey()
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LinuxVideoAccelerator::SelectKey");
+    // Get a session id
+    constexpr uint32_t wv20_open_session = 0x00C20003;
+    struct wv20_open_session_in {
+        pavp_cmd_header_t header;
+    };
+    struct wv20_open_session_out {
+        pavp_cmd_header_t header;
+        uint32_t session_id;
+    };
+    if (m_key_session < 0)
+    {
+        wv20_open_session_in open_session_in {};
+        wv20_open_session_out open_session_out {};
+        open_session_in.header.command_id = wv20_open_session;
+        open_session_in.header.status = 0;
+        open_session_in.header.buffer_len = sizeof(wv20_open_session_in) - sizeof(pavp_cmd_header_t);
+        if (!PassThrough(&open_session_in, sizeof(wv20_open_session_in), &open_session_out, sizeof(wv20_open_session_out)))
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "PassThrough failed!");
+            return false;
+        }
+        MFX_TRACE_1("Got session id = ", "%d", open_session_out.session_id);
+        m_key_session = open_session_out.session_id;
+    }
+    size_t input_size = m_selectKey.size() + sizeof(wv20_select_key_in);
+    auto pCmd_in = std::make_unique<uint8_t[]>(m_selectKey.size() + sizeof(wv20_select_key_in));
+    auto select_key_in = reinterpret_cast<wv20_select_key_in*>(pCmd_in.get());
+    select_key_in->session_id = m_key_session;
+    select_key_in->header.api_version = FIRMWARE_API_VERSION_2_1;
+    select_key_in->header.command_id = wv20_select_key; // command id
+    select_key_in->header.buffer_len = input_size - sizeof(pavp_cmd_header_t);
+    select_key_in->key_id_size = m_selectKey.size();
+    memcpy(select_key_in->key_id, m_selectKey.data(), m_selectKey.size());
+    wv20_select_key_out select_key_out{};
+    ALOGD("zyc, select key pass +");
+    if (!PassThrough(select_key_in, input_size, &select_key_out, sizeof(wv20_select_key_out)))
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "PassThrough failed!");
+        return false;
+    }
+    ALOGD("zyc, select key pass -");
+    m_key_blob.second = false;
+    return true;
+}
+
+bool LinuxVideoAccelerator::SetStreamKey()
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "LinuxVideoAccelerator::SetStreamKey");
+    VABufferID buffer = 0;
+    VAProtectedSessionExecuteBuffer execBuff = {0};
+    VAStatus va_status; 
+    struct PAVP_SET_STREAM_KEY_PARAMS {
+        uint32_t StreamType;
+        uint32_t EncryptedDecryptKey[4];
+        union {
+            uint32_t EncryptedEncryptKey[4];
+            uint32_t EncryptedDecryptRotationKey[4];
+        };
+    } SetStreamKeyParams;
+    SetStreamKeyParams.StreamType = 0; // PAVP_SET_KEY_DECRYPT = 1
+    if (sizeof(SetStreamKeyParams.EncryptedDecryptKey) != m_key_blob.first.size())
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "SetStreamKeyParams.EncryptedDecryptKey size incorrect");
+        return false;
+    }
+    memcpy(SetStreamKeyParams.EncryptedDecryptKey, m_key_blob.first.begin(), m_key_blob.first.size());
+    execBuff = {};
+    execBuff.function_id = VA_TEE_EXEC_GPU_FUNCID_SET_STREAM_KEY;
+    execBuff.input.data_size = sizeof(SetStreamKeyParams);
+    execBuff.input.data = &SetStreamKeyParams;
+    execBuff.output.data_size = 0;
+    execBuff.output.data = nullptr;
+    MFX_TRACE_1("SetStreamKeyParams.EncryptedDecryptKey = ", "%s", FormatHex((uint8_t*)SetStreamKeyParams.EncryptedDecryptKey, 16).c_str());
+    buffer = 0;
+    va_status = vaCreateBuffer(m_dpy, m_protectedSessionID,
+                            VAProtectedSessionExecuteBufferType,
+                            sizeof(execBuff), 1, &execBuff, &buffer);
+    if (va_status) {
+        MFX_TRACE_1("FATAL:SetStreamKey: CreateBuffer fail ", "%d", va_status);
+        return false;
+    }
+    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
+    va_status = vaProtectedSessionExecute(m_dpy, m_protectedSessionID, buffer);
+    vaDestroyBuffer(m_dpy, buffer);
+    if (va_status) {
+        MFX_TRACE_1("FATAL:SetStreamKey: ProtectedSessionExecute fail ", "%d", va_status);
+        return false;
+    }
+    return true;
+}
+
+bool LinuxVideoAccelerator::DecryptCTR(mfxExtEncryptionParam* extEncryptionParam, VAEncryptionParameters* pEncryptionParam)
+{
+    if (VA_INVALID_ID == m_protectedSessionID)
+    {
+        m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
+                                VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, extEncryptionParam->encryption_type);
+        Status umcRes = AttachProtectedSession(m_protectedSessionID);
+        if (UMC_OK != umcRes) {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
+            MFX_TRACE_I(umcRes);
+            return false;
+        }
+    }
+
+    m_key_session = extEncryptionParam->session;
+    MFX_TRACE_1("selectKey from c2 = ", "%s", FormatHex(extEncryptionParam->key_blob, 16).c_str());
+    if (memcmp(m_selectKey.data(), extEncryptionParam->key_blob, 16) != 0)
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "select changed, need to update");
+        std::copy(extEncryptionParam->key_blob, extEncryptionParam->key_blob + 16, m_selectKey.data());
+        m_key_blob.second = false;
+    }
+
+    if (!m_key_blob.second)
+    {
+        if (!InitKey())
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "InitKey failed!");
+            return false;
+        }
+    }
+    if (!SetStreamKey())
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "SetStreamKey failed!");
+        return false;
+    }
+
+    memcpy(pEncryptionParam->wrapped_decrypt_blob, m_key_blob.first.begin(), m_key_blob.first.size());
+    return true;
 }
 
 Status LinuxVideoAccelerator::Close(void)
@@ -1007,17 +1339,18 @@ LinuxVideoAccelerator::Execute()
             }
             if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
 
-            if (pCompBuf->GetType() == VAEncryptionParameterBufferType && 0 == m_pProtectedSessionID)
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType");
-                VAEncryptionParameters* pEncryptionParam = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
-                m_pProtectedSessionID = CreateProtectedSession(pEncryptionParam->encryption_type);
-                umcRes = AttachProtectedSession(m_pProtectedSessionID);
-                if (UMC_OK != umcRes) {
-                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
-                    MFX_TRACE_I(umcRes);
-                }
-            }
+            // if (pCompBuf->GetType() == VAEncryptionParameterBufferType && VA_INVALID_ID == m_protectedSessionID)
+            // {
+            //     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType");
+            //     VAEncryptionParameters* pEncryptionParam = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
+            //     m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
+            //                         VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pEncryptionParam->encryption_type);
+            //     umcRes = AttachProtectedSession(m_protectedSessionID);
+            //     if (UMC_OK != umcRes) {
+            //         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
+            //         MFX_TRACE_I(umcRes);
+            //     }
+            // }
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");

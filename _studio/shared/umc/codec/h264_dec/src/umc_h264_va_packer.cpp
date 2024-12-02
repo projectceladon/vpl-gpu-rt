@@ -745,31 +745,13 @@ void PackerVA::PackEncryptedParams()
     if (!extEncryptionParam)
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
 
-
-    // debug: print key blob
-    auto FormatHex = [] (const uint8_t* data, size_t len)
-    {
-        std::ostringstream ss;
-        ss << std::hex;
-        for (size_t i = 0; i < len; ++i) {
-            if (i > 40) {
-                ss << std::dec << std::setw(0) << "... [" << len << "]";
-                break;
-            }
-            ss << std::setw(2) << std::setfill('0') << (uint32_t)data[i] << " ";
-        }
-        return ss.str();
-    };
-
-    memcpy(pEncryptionParam->wrapped_decrypt_blob, extEncryptionParam->key_blob, 16);
+    m_va->DecryptCTR(extEncryptionParam, pEncryptionParam);
 /*
     std::string key_blob_str = FormatHex(pEncryptionParam->wrapped_decrypt_blob, 16);
     MFX_TRACE_S(key_blob_str.c_str());
 */
     pEncryptionParam->key_blob_size = 16;
-
     pEncryptionParam->encryption_type = extEncryptionParam->encryption_type;
-    
     MFX_TRACE_I(pEncryptionParam->encryption_type);
 
     pEncryptionParam->segment_info = new VAEncryptionSegmentInfo[extEncryptionParam->uiNumSegments];
