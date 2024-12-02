@@ -5142,6 +5142,7 @@ typedef struct {
     mfxExtBuffer Header;      /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCRYPTION_PARAM. */
     mfxU32 encryption_type;
     mfxU8 key_blob[16];
+    mfxU32 session;
     mfxU32 uiNumSegments;
     EncryptionSegmentInfo *pSegmentInfo;
 } mfxExtEncryptionParam;

@@ -1210,6 +1210,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 #endif // MFX_ENABLE_PROTECT
 
     MFX_CHECK((bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNSUPPORTED);
+    MFX_TRACE_I(bs->NumExtParam);
     m_va->SetBitstream(bs);
     m_va->DecryptCTR(bs);
 
@@ -1221,6 +1222,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         MFXMediaDataAdapter src(bs);
 
+        MFX_TRACE_I(bs->NumExtParam);
         mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
 
         if (extbuf)
