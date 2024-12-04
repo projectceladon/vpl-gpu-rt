@@ -726,42 +726,42 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t sess
     if (va_status != VA_STATUS_SUCCESS)
         MFX_TRACE_1("vaDestroyConfig: ", "%d", va_status);
 
-    typedef struct _intel_oem_policy_t {
-        uint8_t pavp_type;
-        uint8_t drm_type;
-        uint8_t content_type;
-        uint8_t version;
-        uint32_t pavp_mode;
-    } intel_oem_policy_t;
-    auto hw_config = std::make_unique<uint8_t>(16);
-    *reinterpret_cast<intel_oem_policy_t*>(hw_config.get()) = {
-        .pavp_type = 1, // PAVP_SESSION_TYPE_DECODE
-        .drm_type = 4, // PAVP_DRM_TYPE_WIDEVINE
-        .content_type = 0, // PAVP_SESSION_CONTENT_TYPE_VIDEO
-        .version = 1, // PAVP_OEM_POLICY_BLOB_VERSION_V1
-        .pavp_mode = 2 // PAVP_SESSION_MODE_HEAVY
-    };
+    // typedef struct _intel_oem_policy_t {
+    //     uint8_t pavp_type;
+    //     uint8_t drm_type;
+    //     uint8_t content_type;
+    //     uint8_t version;
+    //     uint32_t pavp_mode;
+    // } intel_oem_policy_t;
+    // auto hw_config = std::make_unique<uint8_t>(16);
+    // *reinterpret_cast<intel_oem_policy_t*>(hw_config.get()) = {
+    //     .pavp_type = 1, // PAVP_SESSION_TYPE_DECODE
+    //     .drm_type = 4, // PAVP_DRM_TYPE_WIDEVINE
+    //     .content_type = 0, // PAVP_SESSION_CONTENT_TYPE_VIDEO
+    //     .version = 1, // PAVP_OEM_POLICY_BLOB_VERSION_V1
+    //     .pavp_mode = 2 // PAVP_SESSION_MODE_HEAVY
+    // };
 
-    VACompBuffer* compBuf = GetCompBufferHW(VAProtectedSessionExecuteBufferType, sizeof(VAProtectedSessionExecuteBuffer));
-    VAProtectedSessionExecuteBuffer* hw_update_buf = (VAProtectedSessionExecuteBuffer*)compBuf->GetPtr();
+    // VACompBuffer* compBuf = GetCompBufferHW(VAProtectedSessionExecuteBufferType, sizeof(VAProtectedSessionExecuteBuffer));
+    // VAProtectedSessionExecuteBuffer* hw_update_buf = (VAProtectedSessionExecuteBuffer*)compBuf->GetPtr();
 
-    std::vector<uint8_t> hw_identifier_out;
-    constexpr size_t kHwIdentifierMaxSize = 64;
-    memset(hw_update_buf, 0, sizeof(VAProtectedSessionExecuteBuffer));
-    hw_update_buf->function_id = VA_TEE_EXEC_TEE_FUNCID_HW_UPDATE;
-    hw_update_buf->input.data_size = 16; // sizeof(OEMCrypto_PolicyBlobInfo)
-    hw_update_buf->input.data = static_cast<void*>(hw_config.get());
-    hw_update_buf->output.max_data_size = kHwIdentifierMaxSize;
-    hw_identifier_out.resize(kHwIdentifierMaxSize);
-    hw_update_buf->output.data = hw_identifier_out.data();
+    // std::vector<uint8_t> hw_identifier_out;
+    // constexpr size_t kHwIdentifierMaxSize = 64;
+    // memset(hw_update_buf, 0, sizeof(VAProtectedSessionExecuteBuffer));
+    // hw_update_buf->function_id = VA_TEE_EXEC_TEE_FUNCID_HW_UPDATE;
+    // hw_update_buf->input.data_size = 16; // sizeof(OEMCrypto_PolicyBlobInfo)
+    // hw_update_buf->input.data = static_cast<void*>(hw_config.get());
+    // hw_update_buf->output.max_data_size = kHwIdentifierMaxSize;
+    // hw_identifier_out.resize(kHwIdentifierMaxSize);
+    // hw_update_buf->output.data = hw_identifier_out.data();
 
-    compBuf->SetDataSize(sizeof(VASliceParameterBufferH264));
+    // compBuf->SetDataSize(sizeof(VASliceParameterBufferH264));
 
-    VABufferID id = compBuf->GetID();
-    VAStatus va_res = vaProtectedSessionExecute(m_dpy, session, id);
-    MFX_TRACE_1("", "hw_update res = %d", va_res);
+    // VABufferID id = compBuf->GetID();
+    // VAStatus va_res = vaProtectedSessionExecute(m_dpy, session, id);
+    // ALOGD("Nana: hw_update res = %d", va_res);
     
-    CheckAndDestroyVAbuffer(m_dpy, id);
+    // CheckAndDestroyVAbuffer(m_dpy, id);
  
     MFX_CHECK(VA_STATUS_SUCCESS == va_status, VA_INVALID_ID);
 
