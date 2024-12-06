@@ -885,7 +885,7 @@ bool LinuxVideoAccelerator::PassThrough(void* input, size_t input_size, void* ou
     {
         // create HECI session
         m_heci_sessionID = CreateProtectedSession(VA_PC_SESSION_MODE_NONE, VA_PC_SESSION_TYPE_NONE,
-                                            VAEntrypointProtectedTEEComm, VA_ENCRYPTION_TYPE_FULLSAMPLE_CTR);
+                                            VAEntrypointProtectedTEEComm, VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR);
         if (m_heci_sessionID == VA_INVALID_ID) {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL,"Create HECI session fails");
             return false;

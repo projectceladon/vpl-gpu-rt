@@ -770,8 +770,8 @@ void PackerVA::PackEncryptedParams()
     auto header_size = bs->DataLength - bs->EncryptedData->DataLength;
     for (uint32_t i = 0; i < extEncryptionParam->uiNumSegments; i++)
     {
-        pEncryptionParam->segment_info[i].segment_length = bs->DataLength;
-        pEncryptionParam->segment_info[i].init_byte_length = header_size;
+        pEncryptionParam->segment_info[i].segment_length = bs->DataLength - 4; //fixme: hard code
+        pEncryptionParam->segment_info[i].init_byte_length = header_size - 4; // fixme: hard code
         ALOGD("onevpl iv = %s", FormatHex(pEncryptionParam->segment_info[i].aes_cbc_iv_or_ctr, 16).c_str());
         ALOGD("segment_info, header_size = %d,  segment_length = %d, init_byte_length = %d",
             header_size, pEncryptionParam->segment_info[i].segment_length, pEncryptionParam->segment_info[i].init_byte_length);
