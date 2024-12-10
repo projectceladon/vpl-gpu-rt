@@ -599,7 +599,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (pParams->encryption_type > 0 && UMC_OK == umcRes)
         {
-            m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
+            m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                     VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pParams->encryption_type);
             umcRes = AttachProtectedSession(m_protectedSessionID);
         }
@@ -1020,7 +1020,7 @@ bool LinuxVideoAccelerator::DecryptCTR(mfxExtEncryptionParam* extEncryptionParam
 {
     if (VA_INVALID_ID == m_protectedSessionID)
     {
-        m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
+        m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                 VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, extEncryptionParam->encryption_type);
         Status umcRes = AttachProtectedSession(m_protectedSessionID);
         if (UMC_OK != umcRes) {

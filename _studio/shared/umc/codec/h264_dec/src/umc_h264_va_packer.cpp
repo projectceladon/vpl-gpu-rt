@@ -777,7 +777,7 @@ void PackerVA::PackEncryptedParams()
             header_size, pEncryptionParam->segment_info[i].segment_length, pEncryptionParam->segment_info[i].init_byte_length);
     }
 
-    encryptionParameterBuffer->SetDataSize(sizeof(encryptionParameterBuffer));
+    encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
 
     // copy bs->EncryptedData->Data to pProtectedSlice
 /*
