@@ -597,8 +597,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
+        pParams->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
         if (pParams->encryption_type > 0 && UMC_OK == umcRes)
         {
+            ALOGD("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                     VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pParams->encryption_type);
             umcRes = AttachProtectedSession(m_protectedSessionID);

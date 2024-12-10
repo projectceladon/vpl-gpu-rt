@@ -726,18 +726,26 @@ void PackerVA::PackEncryptedParams()
         return;
     }
 
-    if (!bs->EncryptedData) // no encryptedData need to process
-    {
-        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "bs->EncryptedData is nullptr");
-        return;
-    }
-
     // copy mfxExtEncryptionParam to VAEncryptionParameters
     UMCVACompBuffer *encryptionParameterBuffer;
     VAEncryptionParameters* pEncryptionParam = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &encryptionParameterBuffer, sizeof(VAEncryptionParameters));
     if (!pEncryptionParam)
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "pEncryptionParam is nullptr");
     memset(pEncryptionParam, 0, sizeof(VAEncryptionParameters));
+    encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
+
+    if (!bs->EncryptedData) // no encryptedData need to process
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "bs->EncryptedData is nullptr");
+        pEncryptionParam->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+        pEncryptionParam->segment_info = new VAEncryptionSegmentInfo[1];
+        memset(pEncryptionParam->segment_info, 0, sizeof(VAEncryptionSegmentInfo));
+        pEncryptionParam->segment_info->segment_start_offset = 0;
+        pEncryptionParam->segment_info->segment_length = bs->DataLength - 4;
+        pEncryptionParam->segment_info->init_byte_length = bs->DataLength - 4;
+        pEncryptionParam->num_segments = 1;
+        return;
+    }
 
     auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
     MFX_TRACE_P(bs->ExtParam);
@@ -776,8 +784,6 @@ void PackerVA::PackEncryptedParams()
         ALOGD("segment_info, header_size = %d,  segment_length = %d, init_byte_length = %d",
             header_size, pEncryptionParam->segment_info[i].segment_length, pEncryptionParam->segment_info[i].init_byte_length);
     }
-
-    encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
 
     // copy bs->EncryptedData->Data to pProtectedSlice
 /*
