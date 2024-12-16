@@ -726,6 +726,26 @@ void PackerVA::PackEncryptedParams()
         return;
     }
 
+    if (!bs->EncryptedData) // no encryptedData need to process
+    {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "bs->EncryptedData is nullptr");
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "VAEncryptionParameters process");
+        UMCVACompBuffer *buffer;
+        VAEncryptionParameters* p = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &buffer, sizeof(VAEncryptionParameters));
+        memset(p, 0, sizeof(VAEncryptionParameters));
+        p->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+        p->segment_info = new VAEncryptionSegmentInfo[1];
+        memset(p->segment_info, 0, sizeof(VAEncryptionSegmentInfo));
+        p->segment_info->segment_start_offset = 0;
+        UMCVACompBuffer* compBuf1;
+        auto pSlice_H264 = (VASliceParameterBufferH264*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBuf1);
+        p->segment_info->segment_length = pSlice_H264->slice_data_size;
+        p->segment_info->init_byte_length = pSlice_H264->slice_data_size;
+        p->num_segments = 1;
+        buffer->SetDataSize(sizeof(VAEncryptionParameters));
+        return;
+    }
+
     // copy mfxExtEncryptionParam to VAEncryptionParameters
     UMCVACompBuffer *encryptionParameterBuffer;
     VAEncryptionParameters* pEncryptionParam = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &encryptionParameterBuffer, sizeof(VAEncryptionParameters));

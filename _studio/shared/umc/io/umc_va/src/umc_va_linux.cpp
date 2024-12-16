@@ -597,12 +597,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        pParams->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
-        if (pParams->encryption_type > 0 && UMC_OK == umcRes)
+        if (1)
         {
-            ALOGD("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
-                                    VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pParams->encryption_type);
+                                    VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR);
             umcRes = AttachProtectedSession(m_protectedSessionID);
         }
     }
@@ -1341,18 +1339,25 @@ LinuxVideoAccelerator::Execute()
             }
             if (VA_STATUS_SUCCESS == va_res) va_res = va_sts;
 
-            // if (pCompBuf->GetType() == VAEncryptionParameterBufferType && VA_INVALID_ID == m_protectedSessionID)
-            // {
-            //     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "VAEncryptionParameterBufferType");
-            //     VAEncryptionParameters* pEncryptionParam = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
-            //     m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_LITE,
-            //                         VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, pEncryptionParam->encryption_type);
-            //     umcRes = AttachProtectedSession(m_protectedSessionID);
-            //     if (UMC_OK != umcRes) {
-            //         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
-            //         MFX_TRACE_I(umcRes);
-            //     }
-            // }
+            if (pCompBuf->GetType() == VAEncryptionParameterBufferType)
+            {
+                static std::atomic_uint32_t encrpytionParamCount = 0;
+                MFX_TRACE_I(++encrpytionParamCount);
+                VAEncryptionParameters* p = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
+                MFX_TRACE_I(p->segment_info[0].segment_length);
+            }
+            if (pCompBuf->GetType() == VASliceParameterBufferType)
+            {
+                static std::atomic_uint32_t sliceParamCount = 0;
+                MFX_TRACE_I(++sliceParamCount);
+                VASliceParameterBufferH264* p = static_cast<VASliceParameterBufferH264*>(pCompBuf->GetPtr());
+                MFX_TRACE_I(p->slice_data_size);
+            }
+            if (pCompBuf->GetType() == VASliceDataBufferType)
+            {
+                static std::atomic_uint32_t sliceDataCount = 0;
+                MFX_TRACE_I(++sliceDataCount);
+            }
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
