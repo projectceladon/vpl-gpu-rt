@@ -25,7 +25,8 @@
 #define __UMC_H264_VA_PACKER_H
 
 #include "umc_va_base.h"
-
+#include <deque>
+#include <array>
 
 
 namespace UMC_H264_DECODER
@@ -119,6 +120,38 @@ protected:
         VA_FRAME_INDEX_INVALID = 0x7f
     };
 
+    // WA for solving ERR_MORE_DATA bs
+    struct EncryptedInfo
+    {
+        uint32_t DataLength;
+        uint32_t EncryptedDataLength;
+        std::array<uint8_t, 16> iv;
+
+        EncryptedInfo()
+        {
+            DataLength = 0;
+            EncryptedDataLength = 0;
+            iv = {};
+        }
+
+        EncryptedInfo & operator=(const EncryptedInfo & _info)
+        {
+            DataLength = _info.DataLength;
+            EncryptedDataLength = _info.EncryptedDataLength;
+            std::copy(_info.iv.begin(), _info.iv.end(), iv.data());
+            return *this;
+        }
+
+        EncryptedInfo(const EncryptedInfo & _info)
+        {
+            DataLength = _info.DataLength;
+            EncryptedDataLength = _info.EncryptedDataLength;
+            std::copy(_info.iv.begin(), _info.iv.end(), iv.data());
+        }
+    };
+    
+    std::deque<EncryptedInfo> m_cachedBs;
+
 protected:
 
     void CreateSliceParamBuffer(H264DecoderFrameInfo * pSliceInfo);
@@ -129,6 +162,20 @@ protected:
     void PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling);
 };
 
+#ifdef MFX_ENABLE_PROTECT
+class PackerVA_CENC
+    : public PackerVA
+{
+
+public:
+
+    PackerVA_CENC(VideoAccelerator * va, TaskSupplier * supplier) : PackerVA(va, supplier) {}
+private:
+
+    void PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSlice) override;
+    void PackAU(const H264DecoderFrame*, int32_t isTop) override;
+};
+#endif // MFX_ENABLE_PROTECT
 
 } // namespace UMC
 
