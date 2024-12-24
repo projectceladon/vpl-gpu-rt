@@ -42,6 +42,222 @@
 namespace UMC
 {
 
+EncryptedInfo::EncryptedInfo()
+{
+    DataLength = 0;
+    EncryptedDataLength = 0;
+    encryption_type = 0;
+    key_blob[16] = {};
+    session = 0;
+}
+
+EncryptedInfo::~EncryptedInfo()
+{
+    /*
+    if (ExtParam != nullptr)
+    {
+        if (ExtParam->pSegmentInfo)
+        {
+            delete[] ExtParam->pSegmentInfo;
+            ExtParam->pSegmentInfo = nullptr;
+        }
+    }*/
+   segmentInfos.clear();
+};
+
+EncryptedInfo::EncryptedInfo(const mfxBitstream * _bs)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "EncryptedInfo::EncryptedInfo(mfxBitstream * _bs)");
+    DataLength = 0;
+    EncryptedDataLength = 0;
+
+    if (_bs == nullptr) return;
+    MFX_TRACE_I(_bs->DataLength);
+    DataLength = _bs->DataLength;
+
+    if (_bs->EncryptedData != nullptr) {
+        MFX_TRACE_I(_bs->EncryptedData->DataLength);
+        EncryptedDataLength = _bs->EncryptedData->DataLength;
+    }
+
+    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(_bs->ExtParam,
+                                                    _bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
+    if (extEncryptionParam == nullptr) {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
+        return;
+    }
+    encryption_type = extEncryptionParam->encryption_type;
+    std::copy(extEncryptionParam->key_blob, extEncryptionParam->key_blob + 16, key_blob);
+    session = extEncryptionParam->session;
+
+    for (u_int32_t i = 0; i < extEncryptionParam->uiNumSegments; i++) {
+        EncryptionSegmentInfo segment;
+        segment.segment_start_offset = extEncryptionParam->pSegmentInfo[i].segment_start_offset;
+        segment.segment_length = extEncryptionParam->pSegmentInfo[i].segment_length;
+        segment.partial_aes_block_size = extEncryptionParam->pSegmentInfo[i].partial_aes_block_size;
+        segment.init_byte_length = extEncryptionParam->pSegmentInfo[i].init_byte_length;
+        memcpy(segment.aes_cbc_iv_or_ctr, extEncryptionParam->pSegmentInfo[i].aes_cbc_iv_or_ctr, 16);
+        segmentInfos.push_back(segment); // TODO: emplace_back
+    }
+    
+/*
+    if (_bs->EncryptedData != nullptr) {
+        MFX_TRACE_I(_bs->EncryptedData->DataLength);
+        EncryptedDataLength = _bs->EncryptedData->DataLength;
+    }
+    
+    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(_bs->ExtParam,
+                                                    _bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
+    if (extEncryptionParam == nullptr) {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
+        return;
+    }
+    ExtParam = std::make_shared<mfxExtEncryptionParam>();
+    ExtParam->encryption_type = extEncryptionParam->encryption_type;
+    std::copy(extEncryptionParam->key_blob, extEncryptionParam->key_blob + 16, ExtParam->key_blob);
+    ExtParam->session = extEncryptionParam->session;
+    ExtParam->uiNumSegments = extEncryptionParam->uiNumSegments;
+    //std::copy(extEncryptionParam, extEncryptionParam + sizeof(mfxExtEncryptionParam) - sizeof(EncryptionSegmentInfo *),
+    //        ExtParam.get());
+    if (extEncryptionParam->uiNumSegments <= 0) return;
+    //MFX_TRACE_1("extEncryptionParam dump = ", "%s", FormatHex((uint8_t*)ExtParam.get(), sizeof(mfxExtEncryptionParam) - sizeof(EncryptionSegmentInfo *)).c_str());
+    //MFX_TRACE_I(extEncryptionParam->uiNumSegments);
+    //MFX_TRACE_I(ExtParam->uiNumSegments);
+    ExtParam->pSegmentInfo = new EncryptionSegmentInfo[extEncryptionParam->uiNumSegments];
+    for (u_int32_t i = 0; i < extEncryptionParam->uiNumSegments; i++) {
+        memcpy(&ExtParam->pSegmentInfo[i], &extEncryptionParam->pSegmentInfo[i], sizeof(EncryptionSegmentInfo));
+    }
+    MFX_TRACE_P(ExtParam->pSegmentInfo);
+    MFX_TRACE_1("iv = ", "%s", FormatHex(ExtParam->pSegmentInfo[0].aes_cbc_iv_or_ctr, 16).c_str());
+    */
+}
+
+EncryptedInfo & EncryptedInfo::operator=(const EncryptedInfo & _info)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "EncryptedInfo::operator=");
+    DataLength = _info.DataLength;
+    EncryptedDataLength = _info.EncryptedDataLength;
+
+    encryption_type = _info.encryption_type;
+    std::copy(_info.key_blob, _info.key_blob + 16, key_blob);
+    session = _info.session;
+
+    for(auto _segment: _info.segmentInfos) {
+        EncryptionSegmentInfo segment;
+        segment.segment_start_offset = _segment.segment_start_offset;
+        segment.segment_length = _segment.segment_length;
+        segment.partial_aes_block_size = _segment.partial_aes_block_size;
+        segment.init_byte_length = _segment.init_byte_length;
+        memcpy(segment.aes_cbc_iv_or_ctr, _segment.aes_cbc_iv_or_ctr, 16);
+        segmentInfos.push_back(segment); // TODO: emplace_back
+    }
+/*
+    if (_info.ExtParam == nullptr) { MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "_info.ExtParam is nullptr"); return *this;}
+
+    if (ExtParam != nullptr) { // release old
+        if (ExtParam->pSegmentInfo != nullptr) delete[] ExtParam->pSegmentInfo;
+    }
+
+    ExtParam = std::make_shared<mfxExtEncryptionParam>();
+    ExtParam->encryption_type = _info.ExtParam->encryption_type;
+    std::copy(_info.ExtParam->key_blob, _info.ExtParam->key_blob + 16, ExtParam->key_blob);
+    ExtParam->session = _info.ExtParam->session;
+    ExtParam->uiNumSegments = _info.ExtParam->uiNumSegments;
+    ExtParam->pSegmentInfo = new EncryptionSegmentInfo[_info.ExtParam->uiNumSegments];
+    
+    MFX_TRACE_I(_info.ExtParam->uiNumSegments);
+
+    //std::copy(_info.ExtParam.get(), _info.ExtParam.get() + sizeof(mfxExtEncryptionParam) - sizeof(EncryptionSegmentInfo *),
+    //        ExtParam.get());
+    for (u_int32_t i = 0; i < _info.ExtParam->uiNumSegments; i++) {
+        MFX_TRACE_P(&ExtParam->pSegmentInfo[i]);
+        MFX_TRACE_P(&_info.ExtParam->pSegmentInfo[i]);
+        memcpy(&ExtParam->pSegmentInfo[i], &_info.ExtParam->pSegmentInfo[i], sizeof(EncryptionSegmentInfo));
+    }*/
+    return *this;
+}
+
+EncryptedInfo::EncryptedInfo(const EncryptedInfo & _info)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "EncryptedInfo::EncryptedInfo(const EncryptedInfo & _info)");
+    DataLength = _info.DataLength;
+    EncryptedDataLength = _info.EncryptedDataLength;
+
+    encryption_type = _info.encryption_type;
+    std::copy(_info.key_blob, _info.key_blob + 16, key_blob);
+    session = _info.session;
+
+    for(auto _segment: _info.segmentInfos) {
+        EncryptionSegmentInfo segment;
+        segment.segment_start_offset = _segment.segment_start_offset;
+        segment.segment_length = _segment.segment_length;
+        segment.partial_aes_block_size = _segment.partial_aes_block_size;
+        segment.init_byte_length = _segment.init_byte_length;
+        memcpy(segment.aes_cbc_iv_or_ctr, _segment.aes_cbc_iv_or_ctr, 16);
+        segmentInfos.push_back(segment); // TODO: emplace_back
+    }
+/*
+    if (_info.ExtParam == nullptr) { MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "_info.ExtParam is nullptr"); return; }
+
+    if (ExtParam != nullptr) { // release old
+        if (ExtParam->pSegmentInfo != nullptr) delete[] ExtParam->pSegmentInfo;
+    }
+
+    ExtParam = std::make_shared<mfxExtEncryptionParam>();
+    ExtParam->pSegmentInfo = new EncryptionSegmentInfo[_info.ExtParam->uiNumSegments];
+    
+    MFX_TRACE_I(_info.ExtParam->uiNumSegments);
+
+    std::copy(_info.ExtParam.get(), _info.ExtParam.get() + sizeof(mfxExtEncryptionParam) - sizeof(EncryptionSegmentInfo *),
+            ExtParam.get());
+    for (u_int32_t i = 0; i < _info.ExtParam->uiNumSegments; i++) {
+        memcpy(&ExtParam->pSegmentInfo[i], &_info.ExtParam->pSegmentInfo[i], sizeof(EncryptionSegmentInfo));
+    }*/
+}
+/*
+EncryptedInfo::EncryptedInfo(EncryptedInfo && _info)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "EncryptedInfo::EncryptedInfo(const EncryptedInfo && _info)");
+    DataLength = _info.DataLength;
+    EncryptedDataLength = _info.EncryptedDataLength;
+    if (_info.ExtParam)
+    {
+        MFX_TRACE_P(_info.ExtParam.get());
+        MFX_TRACE_I(_info.ExtParam->encryption_type);
+        MFX_TRACE_P(_info.ExtParam->pSegmentInfo);
+    }
+    ExtParam = _info.ExtParam;
+
+    if (_info.ExtParam)
+    {
+        MFX_TRACE_P(ExtParam.get());
+        MFX_TRACE_I(ExtParam->encryption_type);
+        MFX_TRACE_P(ExtParam->pSegmentInfo);
+    }
+}
+
+EncryptedInfo & EncryptedInfo::operator=(const EncryptedInfo && _info)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "EncryptedInfo::operator=(const EncryptedInfo && _info)");
+    DataLength = _info.DataLength;
+    EncryptedDataLength = _info.EncryptedDataLength;
+    if (_info.ExtParam)
+    {
+        MFX_TRACE_P(_info.ExtParam.get());
+        MFX_TRACE_I(_info.ExtParam->encryption_type);
+        MFX_TRACE_P(_info.ExtParam->pSegmentInfo);
+    }
+    ExtParam = _info.ExtParam;
+
+    if (_info.ExtParam)
+    {
+        MFX_TRACE_P(ExtParam.get());
+        MFX_TRACE_I(ExtParam->encryption_type);
+        MFX_TRACE_P(ExtParam->pSegmentInfo);
+    }
+    return *this;
+}
+*/
 enum ChoppingStatus
 {
     CHOPPING_NONE = 0,
@@ -721,47 +937,44 @@ void PackerVA::PackEncryptedParams()
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "PackerVA::PackEncryptedParams");
     EncryptedInfo currentBs;
 
-    auto CopyBsToCachedInfo = [](mfxBitstream * _bs, EncryptedInfo & _info) {
-        _info.DataLength = _bs->DataLength;
-        if (_bs->EncryptedData)
-        {
-            _info.EncryptedDataLength = _bs->EncryptedData->DataLength;
-            auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(_bs->ExtParam,
-                                                        _bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
-            if (!extEncryptionParam) {
-                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
-            } else {
-                std::copy(&extEncryptionParam->pSegmentInfo[0].aes_cbc_iv_or_ctr[0],
-                    &extEncryptionParam->pSegmentInfo[0].aes_cbc_iv_or_ctr[15], _info.iv.data());
-            }
-        }
-        return;
-    };
-
     UMCVACompBuffer* sliceBuffer;
     auto pSlice_H264 = (VASliceParameterBufferH264*)m_va->GetCompBuffer(VASliceParameterBufferType, &sliceBuffer);
+    MFX_TRACE_I(pSlice_H264->slice_data_size);
+
+    auto GetCachedBs = [&cachedBs = this->m_cachedBs](const uint32_t _slice_data_size, EncryptedInfo& result) {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "zyc::GetCachedBs");
+        MFX_TRACE_I(_slice_data_size);
+        auto found = std::find_if(cachedBs.begin(), cachedBs.end(), [_slice_data_size] (const auto& item) {
+            MFX_TRACE_I(item.DataLength);
+            return item.DataLength == _slice_data_size + 4;
+        });
+        if (found != cachedBs.end()) {
+            result = *found;
+            cachedBs.erase(found);
+        }
+        MFX_TRACE_2("get cached bs DataLength = ", "%d, EncryptedDataLength = %d", result.DataLength, result.EncryptedDataLength);
+    };
 
     mfxBitstream *bs = m_va->GetBitstream();
     if (!bs) {
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "bs is nullptr");
-        return;
-    }
-
-    if (bs->DataLength != pSlice_H264->slice_data_size + 4) {
         MFX_TRACE_I(pSlice_H264->slice_data_size);
-        for (auto info: m_cachedBs) {
-            MFX_TRACE_I(info.DataLength);
-            if (pSlice_H264->slice_data_size + 4 == info.DataLength) {
-                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "use cached bs");
-                currentBs = info;
-            }
+        if (pSlice_H264->slice_data_size > 0) {
+            GetCachedBs(pSlice_H264->slice_data_size, currentBs);
+        } else {
+            return;
+        }
+    } else {
+        if (bs->DataLength != pSlice_H264->slice_data_size + 4) {
+            GetCachedBs(pSlice_H264->slice_data_size, currentBs);
         }
     }
 
     // no found cached bs, use input
     if (currentBs.DataLength == 0)
     {
-        CopyBsToCachedInfo(bs, currentBs);
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "no found cached bs, use input");
+        currentBs = std::move(EncryptedInfo(bs));
     } 
 
     if (currentBs.EncryptedDataLength == 0) // no encryptedData need to process
@@ -769,7 +982,8 @@ void PackerVA::PackEncryptedParams()
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "bs->EncryptedData is nullptr");
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "VAEncryptionParameters process");
         UMCVACompBuffer *buffer;
-        VAEncryptionParameters* p = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &buffer, sizeof(VAEncryptionParameters));
+        size_t alloc_size = sizeof(VAEncryptionParameters) + sizeof(VAEncryptionSegmentInfo);
+        VAEncryptionParameters* p = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &buffer, alloc_size);
         memset(p, 0, sizeof(VAEncryptionParameters));
         p->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
         p->segment_info = new VAEncryptionSegmentInfo[1];
@@ -778,12 +992,12 @@ void PackerVA::PackEncryptedParams()
         p->segment_info->segment_length = pSlice_H264->slice_data_size;
         p->segment_info->init_byte_length = pSlice_H264->slice_data_size;
         p->num_segments = 1;
-        buffer->SetDataSize(sizeof(VAEncryptionParameters));
-        {
+        buffer->SetDataSize(alloc_size);
+        {   // cache bs
             if (m_cachedBs.size() >= 5) m_cachedBs.pop_front();
-            EncryptedInfo copyBs;
-            CopyBsToCachedInfo(bs, copyBs);
-            m_cachedBs.push_back(copyBs);
+            EncryptedInfo copyBs(bs);
+            MFX_TRACE_1("cache bs length = ", "%d", copyBs.DataLength);
+            m_cachedBs.emplace_back(copyBs);
         }
         return;
     }
@@ -796,35 +1010,33 @@ void PackerVA::PackEncryptedParams()
     memset(pEncryptionParam, 0, sizeof(VAEncryptionParameters));
     encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
 
-    auto extEncryptionParam = reinterpret_cast<mfxExtEncryptionParam*>(GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_ENCRYPTION_PARAM));
-    if (!extEncryptionParam)
-        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
+    //auto extEncryptionParam = currentBs.ExtParam;
+    //if (!extEncryptionParam)
+    //    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "extEncryptionParam is nullptr");
 
-    m_va->DecryptCTR(extEncryptionParam, pEncryptionParam);
+    m_va->DecryptCTR(currentBs, pEncryptionParam);
 
     pEncryptionParam->key_blob_size = 16;
-    pEncryptionParam->encryption_type = extEncryptionParam->encryption_type;
+    pEncryptionParam->encryption_type = currentBs.encryption_type;
     MFX_TRACE_I(pEncryptionParam->encryption_type);
 
-    pEncryptionParam->segment_info = new VAEncryptionSegmentInfo[extEncryptionParam->uiNumSegments];
+    pEncryptionParam->segment_info = new VAEncryptionSegmentInfo[currentBs.segmentInfos.size()];
     if (!pEncryptionParam->segment_info)
         throw h264_exception(UMC_ERR_ALLOC);
-
-    for (uint32_t i = 0; i < extEncryptionParam->uiNumSegments; i++)
+    for (uint32_t i = 0; i < currentBs.segmentInfos.size(); i++)
     {
-        memcpy(&pEncryptionParam->segment_info[i], &extEncryptionParam->pSegmentInfo[i], sizeof(*pEncryptionParam->segment_info));
+        memcpy(&pEncryptionParam->segment_info[i], (currentBs.segmentInfos.data() + i), sizeof(*pEncryptionParam->segment_info));
     }
 
-    std::copy(&currentBs.iv[0], &currentBs.iv[15], pEncryptionParam->segment_info[0].aes_cbc_iv_or_ctr);
     MFX_TRACE_1("IV = ", "%s", FormatHex(pEncryptionParam->segment_info[0].aes_cbc_iv_or_ctr, 16).c_str());
-    pEncryptionParam->num_segments = extEncryptionParam->uiNumSegments;
+    pEncryptionParam->num_segments = currentBs.segmentInfos.size();
 
     // plus the size of clear header for encrypted params
     UMCVACompBuffer* compBuf;
     auto header_size = currentBs.DataLength - currentBs.EncryptedDataLength;
     MFX_TRACE_I(currentBs.DataLength);
     MFX_TRACE_I(currentBs.EncryptedDataLength);
-    for (uint32_t i = 0; i < extEncryptionParam->uiNumSegments; i++)
+    for (uint32_t i = 0; i < currentBs.segmentInfos.size(); i++)
     {
         pEncryptionParam->segment_info[i].segment_length = currentBs.DataLength - 4; //fixme: hard code
         pEncryptionParam->segment_info[i].init_byte_length = header_size - 4; // fixme: hard code
@@ -832,11 +1044,11 @@ void PackerVA::PackEncryptedParams()
             header_size, pEncryptionParam->segment_info[i].segment_length, pEncryptionParam->segment_info[i].init_byte_length);
     }
 
-    {
-        EncryptedInfo copyBs;
-        CopyBsToCachedInfo(bs, copyBs);
+    {   // cache bs
+        EncryptedInfo copyBs(bs);
         MFX_TRACE_2("cache bs length = ", "%d, EncryptedData->DataLength = %d", copyBs.DataLength, copyBs.EncryptedDataLength);
-        m_cachedBs.push_back(copyBs);
+        //m_cachedBs.emplace_back(copyBs);
+        m_cachedBs.emplace_back(copyBs);
     }
     MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "PackEncryptedParams is done");
     return;

@@ -44,6 +44,30 @@ class H264DecoderFrameInfo;
 struct ReferenceFlags;
 class TaskSupplier;
 
+// WA for solving ERR_MORE_DATA bs
+
+struct EncryptedInfo
+{
+    uint32_t DataLength;
+    uint32_t EncryptedDataLength;
+    mfxU32 encryption_type;
+    mfxU8 key_blob[16];
+    mfxU32 session;
+    std::vector<EncryptionSegmentInfo> segmentInfos;
+
+    EncryptedInfo();
+    ~EncryptedInfo();
+
+    EncryptedInfo(const mfxBitstream * _bs);
+
+    EncryptedInfo & operator=(const EncryptedInfo & _info);
+
+    EncryptedInfo(const EncryptedInfo & _info);
+
+    // EncryptedInfo(EncryptedInfo && _info);
+    // EncryptedInfo & operator=(const EncryptedInfo && _info);
+};
+
 class Packer
 {
 
@@ -118,36 +142,6 @@ protected:
     enum
     {
         VA_FRAME_INDEX_INVALID = 0x7f
-    };
-
-    // WA for solving ERR_MORE_DATA bs
-    struct EncryptedInfo
-    {
-        uint32_t DataLength;
-        uint32_t EncryptedDataLength;
-        std::array<uint8_t, 16> iv;
-
-        EncryptedInfo()
-        {
-            DataLength = 0;
-            EncryptedDataLength = 0;
-            iv = {};
-        }
-
-        EncryptedInfo & operator=(const EncryptedInfo & _info)
-        {
-            DataLength = _info.DataLength;
-            EncryptedDataLength = _info.EncryptedDataLength;
-            std::copy(_info.iv.begin(), _info.iv.end(), iv.data());
-            return *this;
-        }
-
-        EncryptedInfo(const EncryptedInfo & _info)
-        {
-            DataLength = _info.DataLength;
-            EncryptedDataLength = _info.EncryptedDataLength;
-            std::copy(_info.iv.begin(), _info.iv.end(), iv.data());
-        }
     };
     
     std::deque<EncryptedInfo> m_cachedBs;

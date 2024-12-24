@@ -23,7 +23,6 @@
 
 #include "umc_va_base.h"
 
-
 #include <mutex>
 #include <set>
 #include <array>
@@ -137,7 +136,7 @@ public:
     Status ExecuteExtension(int, ExtensionData const&) override
     { return UMC_ERR_UNSUPPORTED; }
 
-    bool DecryptCTR(mfxExtEncryptionParam* extEncryptionParam, VAEncryptionParameters* pEncryptionParam);
+    bool DecryptCTR(EncryptedInfo& info, VAEncryptionParameters* pEncryptionParam);
 
 protected:
 

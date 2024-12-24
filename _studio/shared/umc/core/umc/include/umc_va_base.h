@@ -151,6 +151,7 @@ enum VideoAccelerationPlatform
 class UMCVACompBuffer;
 class ProtectedVA;
 class VideoProcessingVA;
+struct EncryptedInfo;
 #if defined(MFX_ENABLE_PXP)
 class PXPVA;
 #endif // MFX_ENABLE_PXP
@@ -265,7 +266,7 @@ public:
     virtual mfxBitstream* GetBitstream() { return m_bs; }
     virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
 
-    virtual bool DecryptCTR(mfxExtEncryptionParam* extEncryptionParam, VAEncryptionParameters* pEncryptionParam) = 0;
+    virtual bool DecryptCTR(EncryptedInfo& info, VAEncryptionParameters* pEncryptionParam) = 0;
 
 #if defined(MFX_ENABLE_PROTECT)
     virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }

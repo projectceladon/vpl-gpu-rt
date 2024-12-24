@@ -28,8 +28,12 @@
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
+//#ifdef MFX_ENABLE_PROTECT
+#include "umc_va_protected.h"
 #include "va_protected_content_private.h"
 #include <log/log.h>
+#include "umc_h264_va_packer.h"
+//#endif
 
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
@@ -638,6 +642,14 @@ Status LinuxVideoAccelerator::SetAttributes(VAProfile va_profile, LinuxVideoAcce
         }
     }
 
+#ifdef MFX_ENABLE_PROTECT
+    if (pParams->m_protectedVA)
+    {
+        m_protectedVA = std::make_shared<ProtectedVA>();
+        *attribsNumber = UMC_VA_LINUX_ATTRIB_SIZE;
+    }
+#endif
+
     return UMC_OK;
 }
 
@@ -1016,12 +1028,12 @@ bool LinuxVideoAccelerator::SetStreamKey()
     return true;
 }
 
-bool LinuxVideoAccelerator::DecryptCTR(mfxExtEncryptionParam* extEncryptionParam, VAEncryptionParameters* pEncryptionParam)
+bool LinuxVideoAccelerator::DecryptCTR(EncryptedInfo& info, VAEncryptionParameters* pEncryptionParam)
 {
     if (VA_INVALID_ID == m_protectedSessionID)
     {
         m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
-                                VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, extEncryptionParam->encryption_type);
+                                VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, info.encryption_type);
         Status umcRes = AttachProtectedSession(m_protectedSessionID);
         if (UMC_OK != umcRes) {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
@@ -1030,12 +1042,12 @@ bool LinuxVideoAccelerator::DecryptCTR(mfxExtEncryptionParam* extEncryptionParam
         }
     }
 
-    m_key_session = extEncryptionParam->session;
-    MFX_TRACE_1("selectKey from c2 = ", "%s", FormatHex(extEncryptionParam->key_blob, 16).c_str());
-    if (memcmp(m_selectKey.data(), extEncryptionParam->key_blob, 16) != 0)
+    m_key_session = info.session;
+    MFX_TRACE_1("selectKey from c2 = ", "%s", FormatHex(info.key_blob, 16).c_str());
+    if (memcmp(m_selectKey.data(), info.key_blob, 16) != 0)
     {
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "select changed, need to update");
-        std::copy(extEncryptionParam->key_blob, extEncryptionParam->key_blob + 16, m_selectKey.data());
+        std::copy(info.key_blob, info.key_blob + 16, m_selectKey.data());
         m_key_blob.second = false;
     }
 
@@ -1344,6 +1356,7 @@ LinuxVideoAccelerator::Execute()
                 static std::atomic_uint32_t encrpytionParamCount = 0;
                 MFX_TRACE_I(++encrpytionParamCount);
                 VAEncryptionParameters* p = static_cast<VAEncryptionParameters*>(pCompBuf->GetPtr());
+                MFX_TRACE_I(p->num_segments);
                 MFX_TRACE_I(p->segment_info[0].segment_length);
             }
             if (pCompBuf->GetType() == VASliceParameterBufferType)
