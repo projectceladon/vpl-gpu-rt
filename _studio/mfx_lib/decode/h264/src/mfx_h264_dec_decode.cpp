@@ -1258,6 +1258,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                 }
 
                 MFX_CHECK(umcRes != UMC::UMC_NTF_NEW_RESOLUTION, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_CHECK(sts != MFX_WRN_VIDEO_PARAM_CHANGED, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             }
 
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
