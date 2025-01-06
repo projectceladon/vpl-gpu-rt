@@ -137,6 +137,7 @@ public:
     { return UMC_ERR_UNSUPPORTED; }
 
     bool DecryptCTR(EncryptedInfo& info, VAEncryptionParameters* pEncryptionParam);
+    virtual bool IsSecure() { return m_protectedSessionID != VA_INVALID_ID; };
 
 protected:
 
@@ -168,6 +169,7 @@ protected:
     VAProtectedSessionID m_protectedSessionID;
     VAProtectedSessionID    m_heci_sessionID;
     std::array<uint8_t, 16> m_selectKey;
+    // key blob, is initialized
     std::pair<std::array<uint8_t, 16>, bool> m_key_blob;
     uint32_t      m_key_session;
     bool*         m_pKeepVAState;

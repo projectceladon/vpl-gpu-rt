@@ -601,8 +601,9 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        if (1)
+        if (m_protectedSessionID == VA_INVALID_ID)
         {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "Create m_protectedSessionID");
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                     VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR);
             umcRes = AttachProtectedSession(m_protectedSessionID);
@@ -818,7 +819,6 @@ bool LinuxVideoAccelerator::InitKey()
         MFX_TRACE_1("vaCreateBuffer() failed va_sts = ", "%d", va_status);
         return false;
     }
-    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
     va_status = vaProtectedSessionExecute(m_dpy, m_protectedSessionID, buffer);
     vaDestroyBuffer(m_dpy, buffer);
     if (va_status) {
@@ -896,6 +896,7 @@ bool LinuxVideoAccelerator::PassThrough(void* input, size_t input_size, void* ou
     if (VA_INVALID_ID == m_heci_sessionID)
     {
         // create HECI session
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "Create m_heci_sessionID");
         m_heci_sessionID = CreateProtectedSession(VA_PC_SESSION_MODE_NONE, VA_PC_SESSION_TYPE_NONE,
                                             VAEntrypointProtectedTEEComm, VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR);
         if (m_heci_sessionID == VA_INVALID_ID) {
@@ -921,7 +922,6 @@ bool LinuxVideoAccelerator::PassThrough(void* input, size_t input_size, void* ou
         MFX_TRACE_1("vaCreateBuffer() failed va_sts = ", "%d", va_status);
         return false;
     }
-    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
     va_status = vaProtectedSessionExecute(m_dpy, m_heci_sessionID, buffer);
     pavp_cmd_header_t* pIHeader = static_cast<pavp_cmd_header_t*>(input);
     pavp_cmd_header_t* pOHeader = static_cast<pavp_cmd_header_t*>(output);
@@ -971,13 +971,11 @@ bool LinuxVideoAccelerator::SelectKey()
     select_key_in->key_id_size = m_selectKey.size();
     memcpy(select_key_in->key_id, m_selectKey.data(), m_selectKey.size());
     wv20_select_key_out select_key_out{};
-    ALOGD("zyc, select key pass +");
     if (!PassThrough(select_key_in, input_size, &select_key_out, sizeof(wv20_select_key_out)))
     {
         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_HOTSPOTS, "PassThrough failed!");
         return false;
     }
-    ALOGD("zyc, select key pass -");
     m_key_blob.second = false;
     return true;
 }
@@ -1018,7 +1016,6 @@ bool LinuxVideoAccelerator::SetStreamKey()
         MFX_TRACE_1("FATAL:SetStreamKey: CreateBuffer fail ", "%d", va_status);
         return false;
     }
-    ALOGD("zyc, vaProtectedSessionExecute + line: %d", __LINE__);
     va_status = vaProtectedSessionExecute(m_dpy, m_protectedSessionID, buffer);
     vaDestroyBuffer(m_dpy, buffer);
     if (va_status) {
@@ -1032,6 +1029,7 @@ bool LinuxVideoAccelerator::DecryptCTR(EncryptedInfo& info, VAEncryptionParamete
 {
     if (VA_INVALID_ID == m_protectedSessionID)
     {
+        MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "Create m_protectedSessionID");
         m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                 VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, info.encryption_type);
         Status umcRes = AttachProtectedSession(m_protectedSessionID);
@@ -1119,6 +1117,16 @@ Status LinuxVideoAccelerator::Close(void)
     m_uiCompBuffersUsed = 0;
 
     m_associatedIds.clear();
+
+    if (m_protectedSessionID != VA_INVALID_ID) {
+        vaDestroyProtectedSession(m_dpy, m_protectedSessionID);
+        m_protectedSessionID = VA_INVALID_ID;
+    }
+
+    if (m_heci_sessionID != VA_INVALID_ID) {
+        vaDestroyProtectedSession(m_dpy, m_heci_sessionID);
+        m_heci_sessionID = VA_INVALID_ID;
+    }
 
     return VideoAccelerator::Close();
 }

@@ -267,6 +267,7 @@ public:
     virtual void SetBitstream(mfxBitstream* bs) { m_bs = bs; }
 
     virtual bool DecryptCTR(EncryptedInfo& info, VAEncryptionParameters* pEncryptionParam) = 0;
+    virtual bool IsSecure() = 0;
 
 #if defined(MFX_ENABLE_PROTECT)
     virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }
