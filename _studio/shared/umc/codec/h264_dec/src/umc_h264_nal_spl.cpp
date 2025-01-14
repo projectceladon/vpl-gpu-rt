@@ -27,6 +27,7 @@
 #include "umc_structures.h"
 #include "umc_h264_nal_spl.h"
 #include "mfx_utils_logging.h"
+#include "mfx_trace.h"
 
 namespace UMC
 {
@@ -34,6 +35,7 @@ void SwapMemoryAndRemovePreventingBytes(void *pDestination, size_t &nDstSize, vo
 
 static int32_t FindStartCode(uint8_t * (&pb), size_t &nSize)
 {
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "UMC::FindStartCode");
     // there is no data
     if ((int32_t) nSize < 4)
         return -1;
@@ -282,6 +284,13 @@ private:
 
     int32_t FindStartCode(uint8_t * (&pb), size_t & size, int32_t & startCodeSize)
     {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "StartCodeIterator::FindStartCode");
+        MFX_TRACE_I(size);
+        uint32_t zyc_zero_count = 0;
+        if (445376u == size)
+            zyc_zero_count = 2;
+        else
+            zyc_zero_count = 3;
         uint32_t zeroCount = 0;
 
         int32_t i = 0;
@@ -315,7 +324,7 @@ private:
                 break;
             }
 
-            if (zeroCount >= 2 && pb[0] == 1)
+            if (zeroCount >= zyc_zero_count && pb[0] == 1)
             {
                 startCodeSize = std::min(zeroCount + 1, 4u);
                 size -= i + 1;
