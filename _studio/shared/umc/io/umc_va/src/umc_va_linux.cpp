@@ -890,6 +890,33 @@ bool LinuxVideoAccelerator::InitKey()
     return true;
 }
 
+bool LinuxVideoAccelerator::IsProtectedSessionAlive(VAProtectedSessionID protected_session)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "LinuxVideoAccelerator::IsProtectedSessionAlive");
+    uint8_t alive;
+    VAStatus va_status;
+    VABufferID buffer;
+    VAProtectedSessionExecuteBuffer tee_exec_buf = {};
+    tee_exec_buf.function_id = VA_TEE_EXEC_GPU_FUNCID_IS_SESSION_ALIVE;
+    tee_exec_buf.input.data_size = 0;
+    tee_exec_buf.input.data = nullptr;
+    tee_exec_buf.output.data_size = sizeof(alive);
+    tee_exec_buf.output.data = &alive;
+
+    va_status = vaCreateBuffer(m_dpy, protected_session, VAProtectedSessionExecuteBufferType,
+                            sizeof(tee_exec_buf), 1, &tee_exec_buf, &buffer);
+    if (va_status)
+        return false;
+
+    va_status = vaProtectedSessionExecute(m_dpy, protected_session, buffer);
+    vaDestroyBuffer(m_dpy, buffer);
+    if (va_status)
+        return false;
+    MFX_TRACE_I(alive);
+
+    return !!alive;
+}
+
 bool LinuxVideoAccelerator::PassThrough(void* input, size_t input_size, void* output, size_t output_size)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "LinuxVideoAccelerator::PassThrough");
@@ -1143,6 +1170,20 @@ Status LinuxVideoAccelerator::BeginFrame(int32_t FrameBufIndex)
 
     if (lvaBeforeBegin == m_FrameState)
     {
+        if (m_protectedSessionID != VA_INVALID_ID)
+        {
+            uint32_t sleepCount = 0;
+            while (!IsProtectedSessionAlive(m_protectedSessionID))
+            {
+                if (sleepCount++ > 1000)
+                {
+                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "m_protectedSessionID is still not alive!");
+                    break;
+                }
+                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_API, "m_protectedSessionID is not ready, sleep 2 ms and retry it...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+        }
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
             MFX_LTRACE_2(MFX_TRACE_LEVEL_EXTCALL, m_sDecodeTraceStart, "%d|%d", *m_pContext, 0);
