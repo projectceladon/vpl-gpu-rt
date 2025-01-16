@@ -26,6 +26,7 @@
 
 #include <mutex>
 #include <set>
+#include <vector>
 
 namespace UMC
 {
@@ -134,6 +135,8 @@ public:
     Status ExecuteExtension(int, ExtensionData const&) override
     { return UMC_ERR_UNSUPPORTED; }
 
+    bool DecryptCTR(const mfxExtDecryptConfig& , VAEncryptionParameters*);
+
 protected:
 
     // VideoAcceleratorExt methods
@@ -145,6 +148,15 @@ protected:
 
     void SetTraceStrings(uint32_t umc_codec);
     virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
+
+    VAProtectedSessionID CreateProtectedSession(uint32_t session_mode,
+                                                uint32_t session_type,
+                                                VAEntrypoint entrypoint,
+                                                EncryptionScheme encryption_scheme);
+    Status AttachProtectedSession(VAProtectedSessionID session_id);
+    bool InitKey();
+    bool PassThrough(void* input, size_t input_size, void* output, size_t output_size);
+    bool SetStreamKey();
 
 protected:
 
@@ -161,6 +173,12 @@ protected:
 
     const char * m_sDecodeTraceStart;
     const char * m_sDecodeTraceEnd;
+
+    VAProtectedSessionID    m_protectedSessionID;
+    VAProtectedSessionID    m_heci_sessionID;
+    std::vector<uint8_t>    m_selectKey;
+    std::vector<uint8_t>    m_key_blob;
+    uint32_t      m_key_session;
 
     GUID m_guidDecoder;
 private:

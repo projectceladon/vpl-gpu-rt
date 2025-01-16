@@ -26,6 +26,7 @@
 
 #include "umc_va_linux.h"
 #include "umc_va_video_processing.h"
+#include "umc_decrypt.h"
 
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
@@ -689,7 +690,88 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     }
     TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_SLICEPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_SLICEPARAM,
             pSlice_H264, H264DecodeSliceParam, SLICEPARAM_AVC);
+
+    SetupDecryptDecode(pSlice, &crypto_params_, &encryption_segment_info_, NalUnitSize);
     return partial_data;
+}
+
+void PackerVA::SetupDecryptDecode(H264Slice *pSlice, VAEncryptionParameters* crypto_params, std::vector<VAEncryptionSegmentInfo>* segments, size_t nalusize)
+{
+    const mfxExtDecryptConfig& decryptConfig = pSlice->GetDecryptConfig();
+    const std::vector<SubsampleEntry>& subsamples = pSlice->GetSubsamples();
+
+    size_t offset = 0;
+    for (const auto& segment : *segments)
+        offset += segment.segment_length;
+
+    if (decryptConfig.encryption_scheme == EncryptionScheme::kUnencrypted) {
+        crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+        VAEncryptionSegmentInfo segment_info = {};
+        segment_info.segment_start_offset = offset;
+        segment_info.segment_length = segment_info.init_byte_length = nalusize;
+        segments->emplace_back(std::move(segment_info));
+        crypto_params->num_segments++;
+        crypto_params->segment_info = &segments->front();
+        return;
+    }
+
+    m_va->DecryptCTR(decryptConfig, crypto_params);
+
+    crypto_params->num_segments += subsamples.size();
+
+    const bool ctr = (decryptConfig.encryption_scheme == EncryptionScheme::kCenc);
+    if (ctr)
+    {
+        crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+    }
+    else
+    {
+      crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC;
+    }
+
+    size_t total_cypher_size = 0;
+    std::vector<uint8_t> iv(kDecryptionKeySize);
+    iv.assign(decryptConfig.iv, decryptConfig.iv + kDecryptionKeySize);
+
+    for (const auto& entry : subsamples)
+    {
+        VAEncryptionSegmentInfo segment_info = {};
+        segment_info.segment_start_offset = offset;
+        segment_info.segment_length = entry.clear_bytes + entry.cypher_bytes;
+        memcpy(segment_info.aes_cbc_iv_or_ctr, iv.data(), kDecryptionKeySize);
+        if (ctr)
+        {
+            size_t partial_block_size = (kDecryptionKeySize - (total_cypher_size % kDecryptionKeySize)) % kDecryptionKeySize;
+            segment_info.partial_aes_block_size = partial_block_size;
+            if (entry.cypher_bytes > partial_block_size) {
+                // If we are finishing a block, increment the counter.
+                if (partial_block_size)
+                    ctr128_inc64(iv.data());
+                // Increment the counter for every complete block we are adding.
+                for (size_t block = 0;
+                    block < (entry.cypher_bytes - partial_block_size) / kDecryptionKeySize;
+                    ++block)
+                    ctr128_inc64(iv.data());
+            }
+            total_cypher_size += entry.cypher_bytes;
+        }
+        segment_info.init_byte_length = entry.clear_bytes;
+        offset += entry.clear_bytes + entry.cypher_bytes;
+        segments->emplace_back(std::move(segment_info));
+    }
+
+    crypto_params->key_blob_size = kDecryptionKeySize;
+    crypto_params->segment_info = &segments->front();
+}
+
+void PackerVA::PackEncryptedParams(VAEncryptionParameters* crypto_params)
+{
+    UMCVACompBuffer *encryptionParameterBuffer;
+    VAEncryptionParameters* pCrypto = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &encryptionParameterBuffer, sizeof(VAEncryptionParameters));
+    if (!pCrypto)
+        throw h264_exception(UMC_ERR_FAILED);
+    memcpy(pCrypto, crypto_params, sizeof(VAEncryptionParameters));
+    encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
 }
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
@@ -797,6 +879,8 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
     for ( ; first_slice < count_all; )
     {
+        encryption_segment_info_.clear();
+        memset(&crypto_params_, 0, sizeof(crypto_params_));
         PackPicParams(sliceInfo, slice);
 
         CreateSliceParamBuffer(sliceInfo);
@@ -830,6 +914,7 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(sliceInfo);
 #endif
+        PackEncryptedParams(&crypto_params_);
 
         Status sts = m_va->Execute();
         if (sts != UMC_OK)

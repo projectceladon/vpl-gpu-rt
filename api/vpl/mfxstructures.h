@@ -2397,6 +2397,8 @@ enum {
     */
     MFX_EXTBUFF_VPP_AI_SUPER_RESOLUTION = MFX_MAKEFOURCC('V','A','S','R'),
 #endif
+
+    MFX_EXTBUFF_DECRYPT_CONFIG          = MFX_MAKEFOURCC('D', 'E', 'C', 'R'),
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5116,6 +5118,28 @@ typedef struct {
 } mfxExtVPPAISuperResolution;
 MFX_PACK_END()
 #endif
+
+enum struct EncryptionScheme {
+  kUnencrypted = 0,
+  kCenc,  // 'cenc' subsample encryption using AES-CTR mode.
+  kCbcs,  // 'cbcs' pattern encryption using AES-CBC mode.
+  kMaxValue = kCbcs
+};
+
+typedef struct {
+    mfxU32 clear_bytes;
+    mfxU32 cypher_bytes;
+} SubsampleEntry;
+
+typedef struct {
+    mfxExtBuffer Header;      /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_DECRYPT_CONFIG. */
+    EncryptionScheme encryption_scheme;
+    mfxU8 hw_key_id[16];
+    mfxU8 iv[16];
+    mfxU32 session;
+    mfxU32 num_subsamples;
+    SubsampleEntry *subsamples;
+} mfxExtDecryptConfig;
 
 #ifdef __cplusplus
 } // extern "C"

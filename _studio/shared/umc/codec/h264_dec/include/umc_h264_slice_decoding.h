@@ -101,6 +101,25 @@ public:
     // Obtain first MB number
     int32_t GetFirstMBNumber(void) const {return m_iFirstMBFld;}
     int32_t GetStreamFirstMB(void) const {return m_iFirstMB;}
+
+    const mfxExtDecryptConfig& GetDecryptConfig(void) {return m_decryptConfig;}
+    void SetDecryptConfig(mfxExtDecryptConfig* decryptConfig) {
+        if (decryptConfig)
+        {
+            m_decryptConfig.encryption_scheme = decryptConfig->encryption_scheme;
+            std::memcpy(m_decryptConfig.hw_key_id, decryptConfig->hw_key_id, 16);
+            std::memcpy(m_decryptConfig.iv, decryptConfig->iv, 16);
+            m_decryptConfig.session = decryptConfig->session;
+        }
+        else
+        {
+            memset(&m_decryptConfig, 0, sizeof(m_decryptConfig));
+        }
+
+    }
+    const std::vector<SubsampleEntry>& GetSubsamples() {return m_subsamples;}
+    void SetSubsamples(const std::vector<SubsampleEntry>& subsamples) {m_subsamples = subsamples;}
+
     void SetFirstMBNumber(int32_t x) {m_iFirstMB = x;}
     // Obtain MB width
     int32_t GetMBWidth(void) const {return m_iMBWidth;}
@@ -238,6 +257,9 @@ public:  // DEBUG !!!! should remove dependence
     MemoryAllocator *m_pMemoryAllocator;                        // (MemoryAllocator *) pointer to memory allocation tool
 
     H264_Heap_Objects           *m_pObjHeap;
+
+    mfxExtDecryptConfig          m_decryptConfig;
+    std::vector<SubsampleEntry>  m_subsamples;
 };
 
 inline
