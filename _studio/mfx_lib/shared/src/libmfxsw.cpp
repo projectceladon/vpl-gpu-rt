@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <xf86drm.h>
 #include "va/drm/va_drm.h"
+#include <i915_drm.h>
 
 #include "mediasdk_version.h"
 #include "libmfx_core_factory.h"
@@ -40,6 +41,10 @@
 #include "mfx_platform_caps.h"
 
 #include "mfx_unified_decode_logging.h"
+
+#if defined(ANDROID)
+#include <cutils/properties.h>
+#endif
 
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
@@ -222,7 +227,7 @@ mfxStatus MFXDoWork(mfxSession session)
     }
 
     MFXIUnknown * pInt = session->m_pScheduler;
-    MFXIScheduler2 *newScheduler = 
+    MFXIScheduler2 *newScheduler =
         ::QueryInterface<MFXIScheduler2>(pInt, MFXIScheduler2_GUID);
 
     if (!newScheduler)
@@ -610,8 +615,62 @@ GetAdapterInfo(mfxU64 adapterId)
     return result;
 }
 
+static int IsIntelDgpu(int fd)
+{
+    struct drm_i915_query_item item = {
+        .query_id = DRM_I915_QUERY_MEMORY_REGIONS,
+    };
+
+    struct drm_i915_query query = {
+        .num_items = 1, .items_ptr = (uintptr_t)&item,
+    };
+    if (drmIoctl(fd, DRM_IOCTL_I915_QUERY, &query)) {
+        fprintf(stderr, "drv: Failed to DRM_IOCTL_I915_QUERY");
+        return 0;
+    }
+
+    struct drm_i915_query_memory_regions *meminfo = (struct drm_i915_query_memory_regions *)calloc(1, item.length);
+    if (!meminfo) {
+        fprintf(stderr, "drv: %s Exit due to memory allocation failure", __func__);
+        return 0;
+    }
+
+    item.data_ptr = (uintptr_t)meminfo;
+    if (drmIoctl(fd, DRM_IOCTL_I915_QUERY, &query) || item.length <= 0) {
+        free(meminfo);
+        fprintf(stderr, "%s:%d DRM_IOCTL_I915_QUERY error", __FUNCTION__, __LINE__);
+        return 0;
+    }
+
+    int has_sys = 0, has_local = 0;
+    for (uint32_t i = 0; i < meminfo->num_regions; i++) {
+        const struct drm_i915_memory_region_info *mem = &meminfo->regions[i];
+        switch (mem->region.memory_class) {
+        case I915_MEMORY_CLASS_SYSTEM:
+            has_sys = 1;
+            break;
+        case I915_MEMORY_CLASS_DEVICE:
+            has_local = 1;
+            break;
+        default:
+            break;
+        }
+    }
+
+    free(meminfo);
+    return has_local;
+}
+
 static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfxU64, const std::vector<bool>& ) > QueryImpls)
 {
+    int use_dgpu = 1;
+#if defined(ANDROID)
+    char value[PROPERTY_VALUE_MAX] = {};
+
+    property_get("video.hw.dgpu", value, "1");
+    use_dgpu = atoi(value);
+#endif
+
     for (int i = 0; i < 64; ++i)
     {
         std::string path;
@@ -685,6 +744,11 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 
                 if (!QueryImpls(*pCore, deviceId, i, fd, subDevMask))
                     return false;
+
+                // If specify to use dgpu and found dgpu, return the first found dgpu,
+                // otherwise use the last available intel node for codec
+                if (use_dgpu && IsIntelDgpu(fd))
+                    return true;
             }
         }
     }
