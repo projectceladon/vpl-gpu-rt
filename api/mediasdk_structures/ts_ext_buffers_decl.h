@@ -160,3 +160,4 @@ EXTBUF(mfxExtEncodeStatsOutput, MFX_EXTBUFF_ENCODESTATS)
 
 // encrytion
 EXTBUF(mfxExtDecryptConfig, MFX_EXTBUFF_DECRYPT_CONFIG)
+EXTBUF(mfxExtSecureCodec, MFX_EXTBUFF_SECURE_CODEC)

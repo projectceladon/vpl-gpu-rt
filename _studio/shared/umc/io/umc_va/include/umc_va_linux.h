@@ -87,6 +87,7 @@ public:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     int           m_CreateFlags;
+    bool          m_secure;
 };
 
 /* LinuxVideoAccelerator -----------------------------------------------------*/
@@ -136,6 +137,7 @@ public:
     { return UMC_ERR_UNSUPPORTED; }
 
     bool DecryptCTR(const mfxExtDecryptConfig& , VAEncryptionParameters*);
+    bool IsSecure();
 
 protected:
 
@@ -165,6 +167,7 @@ protected:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     lvaFrameState m_FrameState;
+    bool          m_secure;
 
     uint32_t   m_uiCompBuffersNum;
     uint32_t   m_uiCompBuffersUsed;

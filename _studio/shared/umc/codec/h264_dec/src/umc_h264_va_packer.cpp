@@ -691,7 +691,8 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     TRACE_BUFFER_EVENT(VA_TRACE_API_AVC_SLICEPARAMETER_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_SLICEPARAM,
             pSlice_H264, H264DecodeSliceParam, SLICEPARAM_AVC);
 
-    SetupDecryptDecode(pSlice, &crypto_params_, &encryption_segment_info_, NalUnitSize);
+    if (m_va->IsSecure())
+        SetupDecryptDecode(pSlice, &crypto_params_, &encryption_segment_info_, NalUnitSize);
     return partial_data;
 }
 
@@ -914,7 +915,8 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(sliceInfo);
 #endif
-        PackEncryptedParams(&crypto_params_);
+        if (m_va->IsSecure())
+            PackEncryptedParams(&crypto_params_);
 
         Status sts = m_va->Execute();
         if (sts != UMC_OK)

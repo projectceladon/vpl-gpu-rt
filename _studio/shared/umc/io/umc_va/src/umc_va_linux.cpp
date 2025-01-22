@@ -376,6 +376,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         height              = pParams->m_pVideoStreamInfo->clip_info.height;
         m_allocator         = pParams->m_allocator;
         m_FrameState        = lvaBeforeBegin;
+        m_secure            = pParams->m_secure;
 
         // profile or stream type should be set
         if (UNKNOWN == (m_Profile & VA_CODEC))
@@ -552,7 +553,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        if (1)
+        if (m_secure)
         {
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                     VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, EncryptionScheme::kCenc);
@@ -871,6 +872,11 @@ bool LinuxVideoAccelerator::DecryptCTR(const mfxExtDecryptConfig& decryptConfig,
 
     memcpy(pEncryptionParam->wrapped_decrypt_blob, m_key_blob.data(), kDecryptionKeySize);
     return true;
+}
+
+bool LinuxVideoAccelerator::IsSecure()
+{
+    return m_secure;
 }
 
 Status LinuxVideoAccelerator::Close(void)
