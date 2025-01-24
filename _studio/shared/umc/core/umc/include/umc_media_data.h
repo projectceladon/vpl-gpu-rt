@@ -21,6 +21,7 @@
 #ifndef __UMC_MEDIA_DATA_H__
 #define __UMC_MEDIA_DATA_H__
 
+#include "umc_ranges.h"
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
 
@@ -104,6 +105,8 @@ public:
 
     void SetAuxInfo(void* ptr, size_t size, int type);
     void ClearAuxInfo(int type);
+    void SetEncryptedRanges(Ranges<const uint8_t*> ranges) { m_encryptedRanges = std::move(ranges); }
+    const Ranges<const uint8_t*>& GetEncryptedRanges(void) const { return m_encryptedRanges; }
 
     AuxInfo* GetAuxInfo(int type)
     {
@@ -155,6 +158,8 @@ protected:
     uint32_t m_bMemoryAllocated; // (uint32_t) is memory owned by object
 
     std::list<AuxInfo> m_AuxInfo;
+
+    Ranges<const uint8_t*> m_encryptedRanges;
 };
 
 
