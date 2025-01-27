@@ -37,6 +37,7 @@ public:
     void Save(mfxBitstream *pBitstream);
 
     void SetExtBuffer(mfxExtBuffer*);
+    void SetEncryptedStream(mfxExtBuffer*);
 };
 
 mfxStatus ConvertUMCStatusToMfx(UMC::Status status);

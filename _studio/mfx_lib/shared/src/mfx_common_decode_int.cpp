@@ -72,6 +72,27 @@ void MFXMediaDataAdapter::SetExtBuffer(mfxExtBuffer* extbuf)
         SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);
 }
 
+void MFXMediaDataAdapter::SetEncryptedStream(mfxExtBuffer* extbuf)
+{
+    if (extbuf)
+    {
+        SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);
+        // set encrypted ranges
+        mfxExtDecryptConfig* decryptConfig = reinterpret_cast<mfxExtDecryptConfig*>(extbuf);
+        UMC::Ranges<const mfxU8*> encryptedRanges;
+        const mfxU8* start = (uint8_t *)GetDataPointer();
+        const mfxU8* stream_end = start + GetDataSize();
+        for (size_t i = 0; i < decryptConfig->num_subsamples; ++i)
+        {
+            start += decryptConfig->subsamples[i].clear_bytes;
+            const mfxU8* end = std::min(start + decryptConfig->subsamples[i].cypher_bytes, stream_end);
+            encryptedRanges.Add(start, end);
+            start = end;
+        }
+        SetEncryptedRanges(encryptedRanges);
+    }
+}
+
 mfxStatus ConvertUMCStatusToMfx(UMC::Status status)
 {
     switch((UMC::eUMC_VA_Status)status)

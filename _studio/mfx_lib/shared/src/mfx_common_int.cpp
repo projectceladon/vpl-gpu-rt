@@ -569,7 +569,8 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 #ifndef MFX_ADAPTIVE_PLAYBACK_DISABLE
                                                                MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
 #endif
-                                                               MFX_EXTBUFF_ALLOCATION_HINTS
+                                                               MFX_EXTBUFF_ALLOCATION_HINTS,
+                                                               MFX_EXTBUFF_SECURE_CODEC
     };
 
     static const mfxU32 g_decoderSupportedExtBuffersAVC[]   = {
