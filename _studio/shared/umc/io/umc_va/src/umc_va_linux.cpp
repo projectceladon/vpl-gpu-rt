@@ -651,7 +651,7 @@ VAProtectedSessionID LinuxVideoAccelerator::CreateProtectedSession(uint32_t sess
     attrib_cp[2].value = VA_PC_CIPHER_AES;
     attrib_cp[3].value = VA_PC_BLOCK_SIZE_128;
     attrib_cp[4].value = VA_PC_CIPHER_MODE_CTR;
-    if (EncryptionScheme::kCenc == encryption_scheme)
+    if (EncryptionScheme::kCbcs == encryption_scheme)
         attrib_cp[4].value = VA_PC_CIPHER_MODE_CBC;
     attrib_cp[5].value = VA_PC_SAMPLE_TYPE_SUBSAMPLE;
     attrib_cp[6].value = VA_PC_USAGE_DEFAULT;
