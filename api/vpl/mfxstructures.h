@@ -5133,11 +5133,17 @@ typedef struct {
 } SubsampleEntry;
 
 typedef struct {
+    mfxU32 clear_byte_block;
+    mfxU32 cypher_byte_block;
+} EncryptionPattern;
+
+typedef struct {
     mfxExtBuffer Header;      /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_DECRYPT_CONFIG. */
     EncryptionScheme encryption_scheme;
     mfxU8 hw_key_id[16];
     mfxU8 iv[16];
     mfxU32 session;
+    EncryptionPattern pattern;
     mfxU32 num_subsamples;
     SubsampleEntry *subsamples;
 } mfxExtDecryptConfig;

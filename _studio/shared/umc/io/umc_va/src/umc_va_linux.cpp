@@ -511,8 +511,8 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             {
                 if (va_attributes[i].type == VAConfigAttribEncryption)
                 {
-                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "set VAConfigAttribEncryption = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR");
-                    va_attributes[i].value = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+                    MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "set VAConfigAttribEncryption = VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC");
+                    va_attributes[i].value = VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC;
                 }
             }
         }
@@ -556,7 +556,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         if (m_secure)
         {
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
-                                    VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, EncryptionScheme::kCenc);
+                                    VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, EncryptionScheme::kCbcs);
             umcRes = AttachProtectedSession(m_protectedSessionID);
         }
     }

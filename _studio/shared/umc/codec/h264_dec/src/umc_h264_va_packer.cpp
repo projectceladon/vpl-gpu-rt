@@ -730,6 +730,9 @@ void PackerVA::SetupDecryptDecode(H264Slice *pSlice, VAEncryptionParameters* cry
       crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC;
     }
 
+    crypto_params->blocks_stripe_encrypted = decryptConfig.pattern.cypher_byte_block;
+    crypto_params->blocks_stripe_clear = decryptConfig.pattern.clear_byte_block;
+
     size_t total_cypher_size = 0;
     std::vector<uint8_t> iv(kDecryptionKeySize);
     iv.assign(decryptConfig.iv, decryptConfig.iv + kDecryptionKeySize);

@@ -110,6 +110,8 @@ public:
             std::memcpy(m_decryptConfig.hw_key_id, decryptConfig->hw_key_id, 16);
             std::memcpy(m_decryptConfig.iv, decryptConfig->iv, 16);
             m_decryptConfig.session = decryptConfig->session;
+            m_decryptConfig.pattern.cypher_byte_block = decryptConfig->pattern.cypher_byte_block;
+            m_decryptConfig.pattern.clear_byte_block = decryptConfig->pattern.clear_byte_block;
         }
         else
         {
