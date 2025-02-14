@@ -136,7 +136,7 @@ public:
     Status ExecuteExtension(int, ExtensionData const&) override
     { return UMC_ERR_UNSUPPORTED; }
 
-    bool DecryptCTR(const mfxExtDecryptConfig& , VAEncryptionParameters*);
+    bool ConfigHwKey(const mfxExtDecryptConfig& , VAEncryptionParameters*);
     bool IsSecure();
 
 protected:
@@ -155,7 +155,10 @@ protected:
                                                 uint32_t session_type,
                                                 VAEntrypoint entrypoint,
                                                 EncryptionScheme encryption_scheme);
-    Status AttachProtectedSession(VAProtectedSessionID session_id);
+
+    Status DestroyProtectedSession(VAProtectedSessionID session_id);
+    Status AttachProtectedSession();
+    Status DetachProtectedSession();
     bool InitKey();
     bool PassThrough(void* input, size_t input_size, void* output, size_t output_size);
     bool SetStreamKey();
@@ -177,6 +180,7 @@ protected:
     const char * m_sDecodeTraceStart;
     const char * m_sDecodeTraceEnd;
 
+    EncryptionScheme m_last_used_encryption_scheme{EncryptionScheme::kUnencrypted};
     VAProtectedSessionID    m_protectedSessionID;
     VAProtectedSessionID    m_heci_sessionID;
     std::vector<uint8_t>    m_selectKey;

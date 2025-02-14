@@ -716,7 +716,7 @@ void PackerVA::SetupDecryptDecode(H264Slice *pSlice, VAEncryptionParameters* cry
         return;
     }
 
-    m_va->DecryptCTR(decryptConfig, crypto_params);
+    m_va->ConfigHwKey(decryptConfig, crypto_params);
 
     crypto_params->num_segments += subsamples.size();
 
