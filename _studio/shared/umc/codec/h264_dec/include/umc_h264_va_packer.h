@@ -130,8 +130,8 @@ protected:
     void PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling);
 
 private:
-    VAEncryptionParameters crypto_params_;
-    std::vector<VAEncryptionSegmentInfo> encryption_segment_info_;
+    VAEncryptionParameters m_cryptoParams;
+    std::vector<VAEncryptionSegmentInfo> m_encryptionSegmentInfo;
 };
 
 
