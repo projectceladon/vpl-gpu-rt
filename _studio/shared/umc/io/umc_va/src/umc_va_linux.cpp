@@ -555,6 +555,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (m_secure)
         {
+            // Clarification on the EncryptionScheme parameter:
+            // Whether kCbcs or kCenc is set, it only determines the use of the protected decoder path
+            // and does not affect decryption. The same scheme can be used for both cbcs and cenc videos
+            // without creating a new session. Actual decryption is controlled by encryption_scheme in VAEncryptionParameters.
             m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
                                     VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, EncryptionScheme::kCenc);
             umcRes = AttachProtectedSession();
@@ -854,19 +858,20 @@ bool LinuxVideoAccelerator::SetStreamKey()
 
 bool LinuxVideoAccelerator::ConfigHwKey(const mfxExtDecryptConfig& decryptConfig, VAEncryptionParameters* pEncryptionParam)
 {
-    if (m_last_used_encryption_scheme != decryptConfig.encryption_scheme)
-    {
-        DetachProtectedSession();
-        DestroyProtectedSession(m_protectedSessionID);
-        m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
-                                VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, decryptConfig.encryption_scheme);
-        Status umcRes = AttachProtectedSession();
-        if (UMC_OK != umcRes) {
-            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
-            MFX_TRACE_I(umcRes);
-            return false;
-        }
-    }
+    // See comments in Init() function
+    // if (m_last_used_encryption_scheme != decryptConfig.encryption_scheme)
+    // {
+    //     DetachProtectedSession();
+    //     DestroyProtectedSession(m_protectedSessionID);
+    //     m_protectedSessionID = CreateProtectedSession(VA_PC_SESSION_MODE_HEAVY,
+    //                             VA_PC_SESSION_TYPE_DISPLAY, VAEntrypointProtectedContent, decryptConfig.encryption_scheme);
+    //     Status umcRes = AttachProtectedSession();
+    //     if (UMC_OK != umcRes) {
+    //         MFX_LTRACE_MSG(MFX_TRACE_LEVEL_EXTCALL, "AttachProtectedSession failed!");
+    //         MFX_TRACE_I(umcRes);
+    //         return false;
+    //     }
+    // }
 
     m_last_used_encryption_scheme = decryptConfig.encryption_scheme;
     m_key_session = decryptConfig.session;
