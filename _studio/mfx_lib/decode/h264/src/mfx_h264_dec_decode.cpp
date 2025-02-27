@@ -1225,6 +1225,12 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             src.SetExtBuffer(extbuf);
         }
 
+        extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
+        if (extbuf)
+        {
+            src.SetEncryptedStream(extbuf);
+        }
+
         m_pH264VideoDecoder->SetVideoCore(m_core);
 
         for (;;)

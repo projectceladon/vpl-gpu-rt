@@ -91,7 +91,7 @@ endif
 # Setting usual paths to include files
 MFX_INCLUDES := $(LOCAL_PATH)/include
 
-LOCAL_HEADER_LIBRARIES := libmfx_gen_headers libva_headers
+LOCAL_HEADER_LIBRARIES := libmfx_gen_headers libva_headers libva_cp_headers
 
 # Setting usual link flags
 MFX_LDFLAGS := \

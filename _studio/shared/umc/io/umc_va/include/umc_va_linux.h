@@ -26,6 +26,7 @@
 
 #include <mutex>
 #include <set>
+#include <vector>
 
 namespace UMC
 {
@@ -86,6 +87,7 @@ public:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     int           m_CreateFlags;
+    bool          m_secure;
 };
 
 /* LinuxVideoAccelerator -----------------------------------------------------*/
@@ -134,6 +136,9 @@ public:
     Status ExecuteExtension(int, ExtensionData const&) override
     { return UMC_ERR_UNSUPPORTED; }
 
+    bool ConfigHwKey(const mfxExtDecryptConfig& , VAEncryptionParameters*);
+    bool IsSecure();
+
 protected:
 
     // VideoAcceleratorExt methods
@@ -146,6 +151,18 @@ protected:
     void SetTraceStrings(uint32_t umc_codec);
     virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
 
+    VAProtectedSessionID CreateProtectedSession(uint32_t session_mode,
+                                                uint32_t session_type,
+                                                VAEntrypoint entrypoint,
+                                                EncryptionScheme encryption_scheme);
+
+    Status DestroyProtectedSession(VAProtectedSessionID session_id);
+    Status AttachProtectedSession();
+    Status DetachProtectedSession();
+    bool InitKey();
+    bool PassThrough(void* input, size_t input_size, void* output, size_t output_size);
+    bool SetStreamKey();
+
 protected:
 
     VADisplay     m_dpy;
@@ -153,6 +170,7 @@ protected:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     lvaFrameState m_FrameState;
+    bool          m_secure;
 
     uint32_t   m_uiCompBuffersNum;
     uint32_t   m_uiCompBuffersUsed;
@@ -161,6 +179,13 @@ protected:
 
     const char * m_sDecodeTraceStart;
     const char * m_sDecodeTraceEnd;
+
+    EncryptionScheme m_last_used_encryption_scheme{EncryptionScheme::kUnencrypted};
+    VAProtectedSessionID    m_protectedSessionID;
+    VAProtectedSessionID    m_heci_sessionID;
+    std::vector<uint8_t>    m_selectKey;
+    std::vector<uint8_t>    m_key_blob;
+    uint32_t      m_key_session;
 
     GUID m_guidDecoder;
 private:
