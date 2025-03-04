@@ -1224,7 +1224,13 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             ((mfxExtDecodeErrorReport *)extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
-
+#ifdef ENABLE_WIDEVINE
+        extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
+        if (extbuf)
+        {
+            src.SetEncryptedStream(extbuf);
+        }
+#endif
         m_pH264VideoDecoder->SetVideoCore(m_core);
 
         for (;;)

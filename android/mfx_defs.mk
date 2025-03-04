@@ -93,6 +93,10 @@ MFX_INCLUDES := $(LOCAL_PATH)/include
 
 LOCAL_HEADER_LIBRARIES := libmfx_gen_headers libva_headers
 
+ifdef ENABLE_WIDEVINE
+LOCAL_HEADER_LIBRARIES += libva_cp_headers
+endif
+
 # Setting usual link flags
 MFX_LDFLAGS := \
   -z noexecstack \

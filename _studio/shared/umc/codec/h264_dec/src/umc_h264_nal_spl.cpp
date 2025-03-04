@@ -24,7 +24,9 @@
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <vector>
-#include "umc_structures.h"
+#ifdef ENABLE_WIDEVINE
+#include "umc_decrypt.h"
+#endif
 #include "umc_h264_nal_spl.h"
 #include "mfx_utils_logging.h"
 
@@ -151,9 +153,12 @@ public:
             return -1;
 
         int32_t startCodeSize;
-
+#ifdef ENABLE_WIDEVINE
+        const Ranges<const uint8_t*>& encryptedRanges = pSource->GetEncryptedRanges();
+        int32_t iCodeNext = FindStartCodeInClearRanges(source, size, startCodeSize, encryptedRanges);
+#else
         int32_t iCodeNext = FindStartCode(source, size, startCodeSize);
-
+#endif
         if (m_prev.size())
         {
             if (iCodeNext == -1)
@@ -198,8 +203,11 @@ public:
         pSource->MoveDataPointer((int32_t)(source - (uint8_t *)pSource->GetDataPointer() - startCodeSize));
 
         int32_t startCodeSize1;
+#ifdef ENABLE_WIDEVINE
+        iCodeNext = FindStartCodeInClearRanges(source, size, startCodeSize1, encryptedRanges);
+#else
         iCodeNext = FindStartCode(source, size, startCodeSize1);
-
+#endif
         pSource->MoveDataPointer(startCodeSize);
 
         uint32_t flags = pSource->GetFlags();
@@ -280,6 +288,46 @@ private:
     int32_t   m_code;
     double   m_pts;
 
+#ifdef ENABLE_WIDEVINE
+    int32_t FindStartCodeInClearRanges(uint8_t * (&pb), size_t & size, int32_t & startCodeSize, const Ranges<const uint8_t*>& encryptedRanges)
+    {
+        if (encryptedRanges.size() == 0)
+            return FindStartCode(pb, size, startCodeSize);
+
+        uint8_t* pbEnd = pb + size;
+        int32_t iCodeNext = -1;
+        uint8_t* start = pb;
+        int32_t startCodeSize1;
+        size_t bytesLeft;
+        do {
+            bytesLeft = size - (start - pb);
+            iCodeNext = FindStartCode(start, bytesLeft, startCodeSize1);
+            if (iCodeNext == -1) {
+                pb = start;
+                size = bytesLeft;
+                startCodeSize = startCodeSize1;
+                return -1;
+            }
+            const uint8_t* startCode = start - startCodeSize1;
+            const uint8_t* startCodeEnd = start;
+            Ranges<const uint8_t*> startCodeRange;
+            startCodeRange.Add(startCode, startCodeEnd + 1);
+
+            if (encryptedRanges.IntersectionWith(startCodeRange).size() > 0) {
+                // The start code is inside an encrypted section so we need to scan
+                // for another start code.
+                startCodeSize1 = 0;
+                start = std::min(start - startCodeSize1 + 1, pbEnd);
+            }
+
+        } while (startCodeSize1 == 0);
+
+        pb = start;
+        size = bytesLeft;
+        startCodeSize = startCodeSize1;
+        return iCodeNext;
+    }
+#endif
     int32_t FindStartCode(uint8_t * (&pb), size_t & size, int32_t & startCodeSize)
     {
         uint32_t zeroCount = 0;
@@ -391,6 +439,20 @@ public:
     }
 };
 
+#ifdef ENABLE_WIDEVINE
+void NalUnit::GetCurrentSubsamples(MediaData *pSource)
+{
+    MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
+    m_decryptConfig = (aux) ? reinterpret_cast<mfxExtDecryptConfig*>(aux->ptr) : NULL;
+
+    Ranges<const uint8_t*> naluRange;
+    Ranges<const uint8_t*> encryptedRanges = pSource->GetEncryptedRanges();
+    naluRange.Add((const uint8_t*)GetDataPointer(), (const uint8_t*)GetDataPointer() + GetDataSize());
+    auto intersection = encryptedRanges.IntersectionWith(naluRange);
+    m_subsamples =  EncryptedRangesToSubsampleEntry(naluRange.start(0), naluRange.end(0), intersection);
+}
+#endif
+
 NALUnitSplitter::NALUnitSplitter()
     : m_pSwapper(0)
     , m_pStartCodeIter(0)
@@ -447,6 +509,9 @@ NalUnit * NALUnitSplitter::GetNalUnits(MediaData * pSource)
         return 0;
     }
 
+#ifdef ENABLE_WIDEVINE
+    m_nalUnit.GetCurrentSubsamples(pSource);
+#endif
     m_nalUnit.m_nal_unit_type = iCode;
 
     /*static int k = 0;

@@ -3482,7 +3482,10 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     }
     pSlice->SetHeap(&m_ObjHeap);
     pSlice->IncrementReference();
-
+#ifdef ENABLE_WIDEVINE
+    pSlice->SetDecryptConfig(nalUnit->DecryptConfig());
+    pSlice->SetSubsamples(nalUnit->Subsamples());
+#endif
     notifier0<H264Slice> memory_leak_preventing_slice(pSlice, &H264Slice::DecrementReference);
 
     H264MemoryPiece memCopy;
