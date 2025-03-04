@@ -2454,6 +2454,8 @@ enum {
         See the mfxExtAlphaChannelSurface structure for more details.
     */
     MFX_EXTBUFF_ALPHA_CHANNEL_SURFACE = MFX_MAKEFOURCC('A', 'C', 'S', 'F'),
+    MFX_EXTBUFF_DECRYPT_CONFIG          = MFX_MAKEFOURCC('D', 'E', 'C', 'R'),
+    MFX_EXTBUFF_SECURE_CODEC            = MFX_MAKEFOURCC('S', 'E', 'C', 'U'),
 };
 
 /* VPP Conf: Do not use certain algorithms  */
@@ -5318,6 +5320,39 @@ typedef struct {
     mfxU16              reserved[8];
 } mfxExtAlphaChannelSurface;
 MFX_PACK_END()
+
+enum struct EncryptionScheme {
+  kUnencrypted = 0,
+  kCenc,  // 'cenc' subsample encryption using AES-CTR mode.
+  kCbcs,  // 'cbcs' pattern encryption using AES-CBC mode.
+  kMaxValue = kCbcs
+};
+
+typedef struct {
+    mfxU32 clear_bytes;
+    mfxU32 cypher_bytes;
+} SubsampleEntry;
+
+typedef struct {
+    mfxU32 clear_byte_block;
+    mfxU32 cypher_byte_block;
+} EncryptionPattern;
+
+typedef struct {
+    mfxExtBuffer Header;      /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_DECRYPT_CONFIG. */
+    EncryptionScheme encryption_scheme;
+    mfxU8 hw_key_id[16];
+    mfxU8 iv[16];
+    mfxU32 session;
+    EncryptionPattern pattern;
+    mfxU32 num_subsamples;
+    SubsampleEntry *subsamples;
+} mfxExtDecryptConfig;
+
+typedef struct {
+    mfxExtBuffer Header;
+    mfxU8 on;
+} mfxExtSecureCodec;
 
 #ifdef __cplusplus
 } // extern "C"

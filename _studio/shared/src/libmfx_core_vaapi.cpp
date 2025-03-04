@@ -1163,6 +1163,12 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     params.m_surf             = (void **)RenderTargets;
 
     params.m_protectedVA      = param->Protected;
+#ifdef ENABLE_WIDEVINE
+    params.m_secure           = false;
+    const mfxExtSecureCodec* secureCodec = (mfxExtSecureCodec*)mfx::GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_SECURE_CODEC);
+    if (secureCodec && secureCodec->on)
+         params.m_secure      = true;
+#endif
 
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
     /* There are following conditions for post processing via HW fixed function engine:

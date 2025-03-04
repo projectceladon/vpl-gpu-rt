@@ -21,6 +21,9 @@
 #ifndef __UMC_MEDIA_DATA_H__
 #define __UMC_MEDIA_DATA_H__
 
+#ifdef ENABLE_WIDEVINE
+#include "umc_ranges.h"
+#endif
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
 
@@ -104,7 +107,10 @@ public:
 
     void SetAuxInfo(void* ptr, size_t size, int type);
     void ClearAuxInfo(int type);
-
+#ifdef ENABLE_WIDEVINE
+    void SetEncryptedRanges(Ranges<const uint8_t*> ranges) { m_encryptedRanges = std::move(ranges); }
+    const Ranges<const uint8_t*>& GetEncryptedRanges(void) const { return m_encryptedRanges; }
+#endif
     AuxInfo* GetAuxInfo(int type)
     {
         return
@@ -155,6 +161,9 @@ protected:
     uint32_t m_bMemoryAllocated; // (uint32_t) is memory owned by object
 
     std::list<AuxInfo> m_AuxInfo;
+#ifdef ENABLE_WIDEVINE
+    Ranges<const uint8_t*> m_encryptedRanges;
+#endif
 };
 
 
