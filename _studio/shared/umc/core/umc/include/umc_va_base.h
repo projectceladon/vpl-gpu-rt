@@ -269,6 +269,10 @@ public:
 
     virtual bool IsIntelCustomGUID() const = 0;
     virtual int32_t GetSurfaceID(int32_t idx) const { return idx; }
+#ifdef ENABLE_WIDEVINE
+    virtual bool ConfigHwKey(const mfxExtDecryptConfig& decryptConfig, VAEncryptionParameters* pEncryptionParam) = 0;
+    virtual bool IsSecure() = 0;
+#endif
 
 #if defined(MFX_ENABLE_PROTECT)
     virtual ProtectedVA * GetProtectedVA() { return m_protectedVA.get(); }

@@ -37,6 +37,9 @@ public:
     void Save(mfxBitstream *pBitstream);
 
     void SetExtBuffer(mfxExtBuffer*);
+#ifdef ENABLE_WIDEVINE
+    void SetEncryptedStream(mfxExtBuffer*);
+#endif
 };
 
 mfxStatus ConvertUMCStatusToMfx(UMC::Status status);
