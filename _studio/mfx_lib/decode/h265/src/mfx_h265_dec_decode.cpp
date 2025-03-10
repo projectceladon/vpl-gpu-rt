@@ -1050,7 +1050,8 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             {
                 if (!m_isFirstRun)
                 {
-                    sts = MFX_WRN_VIDEO_PARAM_CHANGED;
+                    //sts = MFX_WRN_VIDEO_PARAM_CHANGED;
+		    sts = MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
                 }
                 else
                 {
