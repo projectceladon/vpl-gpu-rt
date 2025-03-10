@@ -28,6 +28,8 @@
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
 
+#include "linux_skuwa_debug.h"
+
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
 
@@ -640,6 +642,7 @@ Status LinuxVideoAccelerator::BeginFrame(int32_t FrameBufIndex)
     Status sts = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
     MFX_CHECK(sts == UMC_OK, sts);
 
+        DEVINFO_WARNING("-zcy- %s surf:%d", __func__, *surface);
     if (lvaBeforeBegin == m_FrameState)
     {
         {
@@ -870,7 +873,7 @@ LinuxVideoAccelerator::Execute()
     return umcRes;
 }
 
-Status LinuxVideoAccelerator::EndFrame(void*)
+Status LinuxVideoAccelerator::EndFrame(void* hdl)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "EndFrame");
     VAStatus va_res = VA_STATUS_SUCCESS;
@@ -885,6 +888,17 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     }
     std::ignore = MFX_STS_TRACE(va_res);
     Status stsRet = va_to_umc_res(va_res);
+
+    { // for test, call vaSyncSurface/vaQuerySurfaceError to get surface decode error.
+        uint16_t t_sts = 0, t_err = 0;
+        int32_t FrameBufIndex = *((int32_t *)hdl);
+        VASurfaceID *surface;
+        Status sts = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
+        MFX_CHECK(sts == UMC_OK, sts);
+
+        QueryTaskStatus(FrameBufIndex, &t_sts, &t_err);
+        DEVINFO_WARNING("-zcy- %s surf:%d status:%d err:%d", __func__, *surface, t_sts, t_err);
+    }
 
     m_FrameState = lvaBeforeBegin;
 
@@ -929,8 +943,6 @@ uint16_t LinuxVideoAccelerator::GetDecodingError(VASurfaceID *surface)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetDecodingError");
     uint16_t error = 0;
 
-#ifndef ANDROID
-    // NOTE: at the moment there is no such support for Android, so no need to execute...
     VAStatus va_sts;
 
     VASurfaceDecodeMBErrors* pVaDecErr = NULL;
@@ -956,7 +968,7 @@ uint16_t LinuxVideoAccelerator::GetDecodingError(VASurfaceID *surface)
             error = MFX_CORRUPTION_MAJOR;
         }
     }
-#endif
+
     return error;
 }
 

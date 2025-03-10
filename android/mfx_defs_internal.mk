@@ -49,3 +49,4 @@ MFX_INCLUDES_INTERNAL :=  \
 
 MFX_INCLUDES_INTERNAL_HW := \
     $(MFX_INCLUDES_INTERNAL) \
+    -I system/logging/liblog/include
