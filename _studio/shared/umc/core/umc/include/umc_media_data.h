@@ -26,7 +26,9 @@
 #endif
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
-
+#ifdef ENABLE_WIDEVINE
+#include "mfxstructures.h"
+#endif
 #include <list>
 
 namespace UMC
@@ -110,6 +112,10 @@ public:
 #ifdef ENABLE_WIDEVINE
     void SetEncryptedRanges(Ranges<const uint8_t*> ranges) { m_encryptedRanges = std::move(ranges); }
     const Ranges<const uint8_t*>& GetEncryptedRanges(void) const { return m_encryptedRanges; }
+
+    void GetCurrentSubsamples(MediaData *pSource);
+    mfxExtDecryptConfig* DecryptConfig() { return m_decryptConfig; }
+    std::vector<SubsampleEntry> Subsamples() { return m_subsamples; }
 #endif
     AuxInfo* GetAuxInfo(int type)
     {
@@ -162,7 +168,10 @@ protected:
 
     std::list<AuxInfo> m_AuxInfo;
 #ifdef ENABLE_WIDEVINE
+private:
     Ranges<const uint8_t*> m_encryptedRanges;
+    mfxExtDecryptConfig *m_decryptConfig = NULL;
+    std::vector<SubsampleEntry> m_subsamples;
 #endif
 };
 
