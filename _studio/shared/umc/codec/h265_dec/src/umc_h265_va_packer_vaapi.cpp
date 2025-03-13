@@ -31,7 +31,9 @@
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_va_video_processing.h"
-
+#ifdef ENABLE_WIDEVINE
+#include "umc_decrypt.h"
+#endif
 #include <va/va_dec_hevc.h>
 
 #if defined (MFX_EXTBUFF_GPU_HANG_ENABLE)
@@ -181,6 +183,11 @@ namespace UMC_HEVC_DECODER
         if (!sps || !pps)
             throw h265_exception(UMC::UMC_ERR_FAILED);
 
+#ifdef ENABLE_WIDEVINE
+        m_encryptionSegmentInfo.clear();
+        memset(&m_cryptoParams, 0, sizeof(m_cryptoParams));
+#endif
+
         PackPicParams(frame, supplier);
         if (sps->scaling_list_enabled_flag)
         {
@@ -196,11 +203,97 @@ namespace UMC_HEVC_DECODER
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(fi);
 #endif
+#ifdef ENABLE_WIDEVINE
+        if (m_va->IsSecure())
+        PackEncryptedParams(&m_cryptoParams);
+#endif
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);
     }
+#ifdef ENABLE_WIDEVINE
+    void PackerVAAPI::SetupDecryptDecode(H265Slice const* slice, VAEncryptionParameters* crypto_params, std::vector<VAEncryptionSegmentInfo>* segments)
+        {
+            const mfxExtDecryptConfig& decryptConfig = slice->GetDecryptConfig();
+            const std::vector<SubsampleEntry>& subsamples = slice->GetSubsamples();
 
+            size_t offset = 0;
+            for (const auto& segment : *segments)
+                offset += segment.segment_length;
+
+            if (decryptConfig.encryption_scheme == EncryptionScheme::kUnencrypted) {
+                crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+                VAEncryptionSegmentInfo segment_info = {};
+                segment_info.segment_start_offset = offset;
+                segment_info.segment_length = segment_info.init_byte_length = slice->m_source.GetDataSize();
+                segments->emplace_back(std::move(segment_info));
+                crypto_params->num_segments++;
+                crypto_params->segment_info = &segments->front();
+                return;
+            }
+
+            m_va->ConfigHwKey(decryptConfig, crypto_params);
+
+            crypto_params->num_segments += subsamples.size();
+
+            const bool ctr = (decryptConfig.encryption_scheme == EncryptionScheme::kCenc);
+            if (ctr)
+            {
+                crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CTR;
+            }
+            else
+            {
+                crypto_params->encryption_type = VA_ENCRYPTION_TYPE_SUBSAMPLE_CBC;
+            }
+
+            crypto_params->blocks_stripe_encrypted = decryptConfig.pattern.cypher_byte_block;
+            crypto_params->blocks_stripe_clear = decryptConfig.pattern.clear_byte_block;
+
+            size_t total_cypher_size = 0;
+            std::vector<uint8_t> iv(UMC::kDecryptionKeySize);
+            iv.assign(decryptConfig.iv, decryptConfig.iv + UMC::kDecryptionKeySize);
+
+            for (const auto& entry : subsamples)
+            {
+                VAEncryptionSegmentInfo segment_info = {};
+                segment_info.segment_start_offset = offset;
+                segment_info.segment_length = entry.clear_bytes + entry.cypher_bytes;
+                memcpy(segment_info.aes_cbc_iv_or_ctr, iv.data(), UMC::kDecryptionKeySize);
+                if (ctr)
+                {
+                    size_t partial_block_size = (UMC::kDecryptionKeySize - (total_cypher_size % UMC::kDecryptionKeySize)) % UMC::kDecryptionKeySize;
+                    segment_info.partial_aes_block_size = partial_block_size;
+                    if (entry.cypher_bytes > partial_block_size) {
+                        // If we are finishing a block, increment the counter.
+                        if (partial_block_size)
+                            UMC::ctr128_inc64(iv.data());
+                        // Increment the counter for every complete block we are adding.
+                        for (size_t block = 0;
+                            block < (entry.cypher_bytes - partial_block_size) / UMC::kDecryptionKeySize;
+                            ++block)
+                            UMC::ctr128_inc64(iv.data());
+                    }
+                    total_cypher_size += entry.cypher_bytes;
+                }
+                segment_info.init_byte_length = entry.clear_bytes;
+                offset += entry.clear_bytes + entry.cypher_bytes;
+                segments->emplace_back(std::move(segment_info));
+            }
+
+            crypto_params->key_blob_size = UMC::kDecryptionKeySize;
+            crypto_params->segment_info = &segments->front();
+        }
+
+        void PackerVAAPI::PackEncryptedParams(VAEncryptionParameters* crypto_params)
+        {
+            UMC::UMCVACompBuffer *encryptionParameterBuffer;
+            VAEncryptionParameters* pCrypto = (VAEncryptionParameters*)m_va->GetCompBuffer(VAEncryptionParameterBufferType, &encryptionParameterBuffer, sizeof(VAEncryptionParameters));
+            if (!pCrypto)
+                throw h265_exception(UMC::UMC_ERR_FAILED);
+            memcpy(pCrypto, crypto_params, sizeof(VAEncryptionParameters));
+            encryptionParameterBuffer->SetDataSize(sizeof(VAEncryptionParameters));
+        }
+#endif
 } // namespace UMC_HEVC_DECODER
 
 namespace UMC_HEVC_DECODER
