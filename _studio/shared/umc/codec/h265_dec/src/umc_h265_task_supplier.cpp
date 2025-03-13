@@ -1959,6 +1959,11 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     H265Slice * pSlice = m_ObjHeap.AllocateObject<H265Slice>();
     pSlice->IncrementReference();
 
+#ifdef ENABLE_WIDEVINE
+    pSlice->SetDecryptConfig(nalUnit->DecryptConfig());
+    pSlice->SetSubsamples(nalUnit->Subsamples());
+#endif
+
     notifier0<H265Slice> memory_leak_preventing_slice(pSlice, &H265Slice::DecrementReference);
 
     MemoryPiece memCopy;

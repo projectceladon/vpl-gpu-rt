@@ -158,7 +158,12 @@ public:
 
         int32_t startCodeSize;
 
+#ifdef ENABLE_WIDEVINE
+        const UMC::Ranges<const uint8_t*>& encryptedRanges = pSource->GetEncryptedRanges();
+        int32_t iCodeNext = FindStartCodeInClearRanges(source, size, startCodeSize, encryptedRanges);
+#else
         int32_t iCodeNext = FindStartCode(source, size, startCodeSize);
+#endif
 
         // Use start code data which is saved from previous call because start code could be split between input buffers from application
         if (!m_prev.empty())
@@ -204,8 +209,11 @@ public:
         pSource->MoveDataPointer((int32_t)(source - (uint8_t *)pSource->GetDataPointer() - startCodeSize));
 
         int32_t startCodeSize1;
+#ifdef ENABLE_WIDEVINE
+        iCodeNext = FindStartCodeInClearRanges(source, size, startCodeSize1, encryptedRanges);
+#else
         iCodeNext = FindStartCode(source, size, startCodeSize1);
-
+#endif
         pSource->MoveDataPointer(startCodeSize);
 
         uint32_t flags = pSource->GetFlags();
@@ -291,6 +299,47 @@ private:
     std::vector<uint8_t>  m_prev;
     int32_t   m_code;
     double   m_pts;
+
+#ifdef ENABLE_WIDEVINE
+    int32_t FindStartCodeInClearRanges(uint8_t * (&pb), size_t & size, int32_t & startCodeSize, const UMC::Ranges<const uint8_t*>& encryptedRanges)
+     {
+         if (encryptedRanges.size() == 0)
+             return FindStartCode(pb, size, startCodeSize);
+ 
+         uint8_t* pbEnd = pb + size;
+         int32_t iCodeNext = -1;
+         uint8_t* start = pb;
+         int32_t startCodeSize1;
+         size_t bytesLeft;
+         do {
+             bytesLeft = size - (start - pb);
+             iCodeNext = FindStartCode(start, bytesLeft, startCodeSize1);
+             if (iCodeNext == -1) {
+                 pb = start;
+                 size = bytesLeft;
+                 startCodeSize = startCodeSize1;
+                 return -1;
+             }
+             const uint8_t* startCode = start - startCodeSize1;
+             const uint8_t* startCodeEnd = start;
+             UMC::Ranges<const uint8_t*> startCodeRange;
+             startCodeRange.Add(startCode, startCodeEnd + 1);
+ 
+             if (encryptedRanges.IntersectionWith(startCodeRange).size() > 0) {
+                 // The start code is inside an encrypted section so we need to scan
+                 // for another start code.
+                 startCodeSize1 = 0;
+                 start = std::min(start - startCodeSize1 + 1, pbEnd);
+             }
+ 
+         } while (startCodeSize1 == 0);
+ 
+         pb = start;
+         size = bytesLeft;
+         startCodeSize = startCodeSize1;
+         return iCodeNext;
+     }
+#endif
 
     // Searches NAL unit start code, places input pointer to it and fills up size paramters
     // ML: OPT: Replace with MaxL's fast start code search
@@ -463,6 +512,10 @@ UMC::MediaDataEx * NALUnitSplitter_H265::GetNalUnits(UMC::MediaData * pSource)
         pMediaDataEx->count = 0;
         return 0;
     }
+
+#ifdef ENABLE_WIDEVINE
+    out->GetCurrentSubsamples(pSource);
+#endif
 
     pMediaDataEx->values[0] = iCode;
 

@@ -17,7 +17,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
+#ifdef ENABLE_WIDEVINE
+#include "umc_decrypt.h"
+#endif
 #include "umc_media_data.h"
 #include "umc_defs.h"
 
@@ -288,4 +290,17 @@ Status MediaData::MoveDataTo(MediaData* dst)
 
 } // MediaData::MoveDataTo(MediaData& src)
 
+#ifdef ENABLE_WIDEVINE
+void MediaData::GetCurrentSubsamples(MediaData *pSource)
+{
+    MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
+    m_decryptConfig = (aux) ? reinterpret_cast<mfxExtDecryptConfig*>(aux->ptr) : NULL;
+
+    Ranges<const uint8_t*> naluRange;
+    Ranges<const uint8_t*> encryptedRanges = pSource->GetEncryptedRanges();
+    naluRange.Add((const uint8_t*)GetDataPointer(), (const uint8_t*)GetDataPointer() + GetDataSize());
+    auto intersection = encryptedRanges.IntersectionWith(naluRange);
+    m_subsamples =  EncryptedRangesToSubsampleEntry(naluRange.start(0), naluRange.end(0), intersection);
+}
+#endif
 } // namespace UMC

@@ -28,7 +28,6 @@
 #include "umc_h264_dec_defs_dec.h"
 #include "umc_media_data_ex.h"
 #include "umc_h264_heap.h"
-#include "mfxstructures.h"
 
 namespace UMC
 {
@@ -86,15 +85,6 @@ public:
 
     int m_nal_unit_type;
     bool m_use_external_memory;
-
-#ifdef ENABLE_WIDEVINE
-    void GetCurrentSubsamples(MediaData *pSource);
-    mfxExtDecryptConfig* DecryptConfig() { return m_decryptConfig; }
-    std::vector<SubsampleEntry> Subsamples() { return m_subsamples; }
-private:
-    mfxExtDecryptConfig *m_decryptConfig = NULL;
-    std::vector<SubsampleEntry> m_subsamples;
-#endif
 };
 
 class SwapperBase
