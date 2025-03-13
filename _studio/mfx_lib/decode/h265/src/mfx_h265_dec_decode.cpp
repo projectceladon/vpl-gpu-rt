@@ -1031,6 +1031,13 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         }
         m_pH265VideoDecoder->SetVideoCore(m_core);
 
+#ifdef ENABLE_WIDEVINE
+        extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
+         if (extbuf)
+         {
+             src.SetEncryptedStream(extbuf);
+         }
+#endif
         for (;;)
         {
             sts = m_surface_source->SetCurrentMFXSurface(surface_work);

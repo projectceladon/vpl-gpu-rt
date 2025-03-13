@@ -24,9 +24,6 @@
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <vector>
-#ifdef ENABLE_WIDEVINE
-#include "umc_decrypt.h"
-#endif
 #include "umc_h264_nal_spl.h"
 #include "mfx_utils_logging.h"
 
@@ -438,20 +435,6 @@ public:
         MFX_INTERNAL_CPY(pDestination, pSource, (uint32_t)nSrcSize);
     }
 };
-
-#ifdef ENABLE_WIDEVINE
-void NalUnit::GetCurrentSubsamples(MediaData *pSource)
-{
-    MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
-    m_decryptConfig = (aux) ? reinterpret_cast<mfxExtDecryptConfig*>(aux->ptr) : NULL;
-
-    Ranges<const uint8_t*> naluRange;
-    Ranges<const uint8_t*> encryptedRanges = pSource->GetEncryptedRanges();
-    naluRange.Add((const uint8_t*)GetDataPointer(), (const uint8_t*)GetDataPointer() + GetDataSize());
-    auto intersection = encryptedRanges.IntersectionWith(naluRange);
-    m_subsamples =  EncryptedRangesToSubsampleEntry(naluRange.start(0), naluRange.end(0), intersection);
-}
-#endif
 
 NALUnitSplitter::NALUnitSplitter()
     : m_pSwapper(0)

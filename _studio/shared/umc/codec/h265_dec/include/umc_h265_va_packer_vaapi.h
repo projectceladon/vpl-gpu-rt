@@ -63,9 +63,19 @@ namespace UMC_HEVC_DECODER
 
         void PackAU(H265DecoderFrame const*, TaskSupplier_H265*) override;
 
+#ifdef ENABLE_WIDEVINE
+        bool PackSliceParams(H265Slice const* slice, size_t, bool last_slice) override
+        {
+             bool res = PackSliceParams(slice, last_slice);
+             if (res && m_va->IsSecure())
+                 SetupDecryptDecode(slice, &m_cryptoParams, &m_encryptionSegmentInfo);
+             return res;
+         }
+#else
         bool PackSliceParams(H265Slice const* slice, size_t, bool last_slice) override
         { return PackSliceParams(slice, last_slice) ? true : false; }
-
+#endif
+        
         void PackProcessingInfo(H265DecoderFrameInfo * sliceInfo);
 
     protected:
@@ -74,8 +84,19 @@ namespace UMC_HEVC_DECODER
         virtual void CreateSliceParamBuffer(size_t count) = 0;
         virtual void PackSliceParams(VASliceParameterBufferBase* sp_base, H265Slice const* slice, bool last_slice) = 0;
 
+#ifdef ENABLE_WIDEVINE
+        void SetupDecryptDecode(H265Slice const* slice, VAEncryptionParameters* crypto_params, std::vector<VAEncryptionSegmentInfo>* segments);
+        void PackEncryptedParams(VAEncryptionParameters* crypto_params);
+#endif
+
     private:
         void PackQmatrix(H265Slice const*) override;
+
+#ifdef ENABLE_WIDEVINE
+    private:
+         VAEncryptionParameters m_cryptoParams;
+         std::vector<VAEncryptionSegmentInfo> m_encryptionSegmentInfo;
+#endif
     };
 
 
