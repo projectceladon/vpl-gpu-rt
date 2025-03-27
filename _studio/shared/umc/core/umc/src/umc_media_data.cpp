@@ -293,6 +293,8 @@ Status MediaData::MoveDataTo(MediaData* dst)
 #ifdef ENABLE_WIDEVINE
 void MediaData::GetCurrentSubsamples(MediaData *pSource)
 {
+    if (!pSource)
+        return;
     MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECRYPT_CONFIG) : NULL;
     m_decryptConfig = (aux) ? reinterpret_cast<mfxExtDecryptConfig*>(aux->ptr) : NULL;
 
