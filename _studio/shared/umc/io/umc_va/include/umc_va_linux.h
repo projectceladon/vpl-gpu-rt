@@ -32,7 +32,6 @@ namespace UMC
 {
 
 #define UMC_VA_LINUX_INDEX_UNDEF -1
-#define UMC_VA_LINUX_ATTRIB_SIZE 4
 
 /* VACompBuffer --------------------------------------------------------------*/
 
@@ -152,7 +151,7 @@ protected:
     uint16_t GetDecodingError(VASurfaceID *surface);
 
     void SetTraceStrings(uint32_t umc_codec);
-    virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, VAConfigAttrib *attribute, int32_t *attribsNumber);
+    virtual Status SetAttributes(VAProfile va_profile, LinuxVideoAcceleratorParams* pParams, std::vector<VAConfigAttrib>& attributes);
 
 #ifdef ENABLE_WIDEVINE
     VAProtectedSessionID CreateProtectedSession(uint32_t session_mode,
