@@ -667,7 +667,7 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
 #if defined(ANDROID)
     char value[PROPERTY_VALUE_MAX] = {};
 
-    property_get("video.hw.dgpu", value, "1");
+    property_get("vendor.video.hw.dgpu", value, "1");
     use_dgpu = atoi(value);
 #endif
 
@@ -748,6 +748,8 @@ static bool QueryImplCaps(std::function < bool (VideoCORE&, mfxU32, mfxU32 , mfx
                 // If specify to use dgpu and found dgpu, return the first found dgpu,
                 // otherwise use the last available intel node for codec
                 if (use_dgpu && IsIntelDgpu(fd))
+                    return true;
+                if (!use_dgpu && !IsIntelDgpu(fd))
                     return true;
             }
         }
