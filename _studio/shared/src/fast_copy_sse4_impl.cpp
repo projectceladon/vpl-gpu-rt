@@ -21,6 +21,7 @@
 */
 #include "fast_copy_sse4_impl.h"
 #include "mfx_config.h"
+#include <log/log.h>
 
 #if defined(MFX_SSE_4_1)
 
@@ -28,6 +29,10 @@
 
 void copyVideoToSys_SSE4(const mfxU8* src, mfxU8* dst, int width)
 {
+    if (!src || !dst) {
+        ALOGD("src = %p, dst = %p", src, dst);
+        return;
+    }
     static const int item_size = 4*sizeof(__m128i);
 
     int align16 = (0x10 - (reinterpret_cast<size_t>(src) & 0xf)) & 0xf;
@@ -80,6 +85,10 @@ void copyVideoToSys_SSE4(const mfxU8* src, mfxU8* dst, int width)
 
 void copyVideoToSysShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shift)
 {
+    if (!src || !dst) {
+        ALOGD("src = %p, dst = %p", src, dst);
+        return;
+    }
     static const int item_size = 4 * sizeof(__m128i);
 
     int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
@@ -137,6 +146,10 @@ void copyVideoToSysShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shi
 
 void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shift)
 {
+    if (!src || !dst) {
+        ALOGD("src = %p, dst = %p", src, dst);
+        return;
+    }
     static const int item_size = 4 * sizeof(__m128i);
 
     int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
@@ -194,6 +207,10 @@ void copySysToVideoShift_SSE4(const mfxU16* src, mfxU16* dst, int width, int shi
 
 void copySysVariantToVideo_SSE4(const mfxU8* src, int loffset, mfxU16* dst, int width)
 {
+    if (!src || !dst) {
+        ALOGD("src = %p, dst = %p", src, dst);
+        return;
+    }
     static const int item_size = 2 * sizeof(__m128i);
     mfxU8 *src2 = (mfxU8*) src + loffset;
     int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
